@@ -16,6 +16,16 @@ try:
 
     if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
         print("FAILED")
+
+        username_input = driver.find_element(By.NAME, "Ecom_User_ID")
+        password_input = driver.find_element(By.NAME, "Ecom_Password")
+
+        username_input.send_keys(Username)
+        password_input.send_keys(Password)
+
+        login_button = driver.find_element(By.ID, "loginbtn")
+        login_button.click()
+        input("Press")
     elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
         print("SUCCESS")
     else:
