@@ -1,5 +1,5 @@
-from credentials import Username, Password, Secret_Key
 import time
+from credentials import Username, Password, Secret_Key
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
