@@ -1,4 +1,5 @@
 from credentials import Username, Password, Secret_Key
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -25,7 +26,22 @@ try:
 
         login_button = driver.find_element(By.ID, "loginbtn")
         login_button.click()
+
+        time.sleep(0.5)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+
+        redirected_url = driver.current_url
+        print(redirected_url)
+        if redirected_url.startswith("https://mfa.services.universiteitleiden.nl"):
+
+            next_button = driver.find_element(By.ID, "loginButton2")
+            next_button.click()
+
+        else:
+            print("Password incorrect")
+        
         input("Press")
+
     elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
         print("SUCCESS")
     else:
