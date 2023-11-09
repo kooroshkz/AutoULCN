@@ -1,10 +1,10 @@
-import time
-from credentials import Username, Password, Secret_Key
+import time, pyotp
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from credentials import Username, Password, Secret_Key
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 
 url = "https://brightspace.universiteitleiden.nl"
 driver = webdriver.Chrome()
@@ -41,6 +41,16 @@ try:
         if redirected_url.startswith("https://mfa.services.universiteitleiden.nl"):
             next_button = driver.find_element(By.ID, "loginButton2")
             next_button.click()
+
+            totp = pyotp.TOTP(Secret_Key)
+            totp_code = totp.now()
+
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "nffc")))
+
+            code_input = driver.find_element(By.ID, "nffc")
+            code_input.send_keys(totp_code)
+            next_button_after_code = driver.find_element(By.ID, "loginButton2")
+            next_button_after_code.click()
         else:
             print("Password incorrect")
 
@@ -51,5 +61,5 @@ try:
 
 finally:
     print("Done with the script")
-    time.sleep(3)
+    time.sleep(10)
     driver.quit()
