@@ -16,50 +16,47 @@ def url_changes(old_url):
         return driver.current_url != old_url
     return _url_changes
 
-try:
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-    current_url = driver.current_url
+WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-    if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
-        print("Login required!")
+current_url = driver.current_url
 
-        username_input = driver.find_element(By.NAME, "Ecom_User_ID")
-        password_input = driver.find_element(By.NAME, "Ecom_Password")
+if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
+    print("Login required!")
 
-        username_input.send_keys(Username)
-        password_input.send_keys(Password)
+    username_input = driver.find_element(By.NAME, "Ecom_User_ID")
+    password_input = driver.find_element(By.NAME, "Ecom_Password")
 
-        login_button = driver.find_element(By.ID, "loginbtn")
-        login_button.click()
+    username_input.send_keys(Username)
+    password_input.send_keys(Password)
 
-        WebDriverWait(driver, 10).until(url_changes(current_url))
+    login_button = driver.find_element(By.ID, "loginbtn")
+    login_button.click()
 
-        redirected_url = driver.current_url
-        print(redirected_url)
+    WebDriverWait(driver, 10).until(url_changes(current_url))
 
-        if redirected_url.startswith("https://mfa.services.universiteitleiden.nl"):
-            next_button = driver.find_element(By.ID, "loginButton2")
-            next_button.click()
+    redirected_url = driver.current_url
+    print(redirected_url)
 
-            totp = pyotp.TOTP(Secret_Key)
-            totp_code = totp.now()
+    if redirected_url.startswith("https://mfa.services.universiteitleiden.nl"):
+        next_button = driver.find_element(By.ID, "loginButton2")
+        next_button.click()
 
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "nffc")))
+        totp = pyotp.TOTP(Secret_Key)
+        totp_code = totp.now()
 
-            code_input = driver.find_element(By.ID, "nffc")
-            code_input.send_keys(totp_code)
-            next_button_after_code = driver.find_element(By.ID, "loginButton2")
-            next_button_after_code.click()
-        else:
-            print("Password incorrect")
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "nffc")))
 
-    elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
-        print("Already Signed In")
+        code_input = driver.find_element(By.ID, "nffc")
+        code_input.send_keys(totp_code)
+        next_button_after_code = driver.find_element(By.ID, "loginButton2")
+        next_button_after_code.click()
     else:
+        print("Password incorrect")
+
+elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
+    print("Already Signed In")
+else:
         print("UNKNOWN URL")
 
-finally:
-    print("Done with the script")
-    time.sleep(10)
-    driver.quit()
+input("Press any key to close...")

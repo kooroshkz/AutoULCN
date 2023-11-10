@@ -1,4 +1,4 @@
-with open('Credentials_copy.txt', 'r') as file:
+with open('Credentials.txt', 'r') as file:
 
     for line in file:
         variable, value = line.strip().split(' = ')
