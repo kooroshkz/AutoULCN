@@ -4,13 +4,17 @@
   <title>Google Checker</title>
   <style>
     body {
-      width: 200px;
-      height: 100px;
+      width: 300px;
     }
   </style>
 </head>
 <body>
-  <p id="status"></p>
+  <div id="popup-content">
+    <p id="status"></p>
+    <input type="text" id="userInput" placeholder="Enter a string">
+    <button id="saveButton">Save</button>
+  </div>
   <script src="popup.js"></script>
+  <script src="popup_event.js"></script>
 </body>
 </html>
