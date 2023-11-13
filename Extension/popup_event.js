@@ -1,2 +1,2 @@
 // popup_event.js
-document.getElementById('saveButton').addEventListener('click', saveString);
+document.getElementById('saveButton').addEventListener('click', saveKey);
