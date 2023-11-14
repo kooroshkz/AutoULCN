@@ -1,7 +1,7 @@
-// popup.js
 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const currentTab = tabs[0];
-  const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl");
+  const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl") || currentTab.url.startsWith("https://mfa.services.universiteitleiden.nl");
+
   const storedUsername = localStorage.getItem("Username");
   const storedPassword = localStorage.getItem("Password");
   const storedSecretKey = localStorage.getItem("Secret_Key");
@@ -16,6 +16,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (storedUsername && storedPassword && storedSecretKey) {
       const totp = new jsOTP.totp();
       const totpCode = totp.getOtp(storedSecretKey);
+      copyToClipboard(totpCode);
       statusElement.textContent = "Current TOTP Code: " + totpCode;
       userInputElement.style.display = "none";
       passwordInputElement.style.display = "none";
@@ -50,9 +51,19 @@ function saveCredentials() {
 
   const totp = new jsOTP.totp();
   const totpCode = totp.getOtp(secretKey);
+  copyToClipboard(totpCode);
   document.getElementById("status").textContent = "Current TOTP Code: " + totpCode;
   document.getElementById("userInput").style.display = "none";
   document.getElementById("passwordInput").style.display = "none";
   document.getElementById("secretKeyInput").style.display = "none";
   document.getElementById("saveButton").style.display = "none";
+}
+
+function copyToClipboard(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
 }

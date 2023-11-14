@@ -19,7 +19,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://login.uaccess.leidenuniv.nl/*"],
+      "matches": ["*://login.uaccess.leidenuniv.nl/*", "*://mfa.services.universiteitleiden.nl/*"],
       "js": ["content.js"]
     }
   ]
