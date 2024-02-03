@@ -36,9 +36,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     secretKeyInputElement.style.display = "none";
     saveButton.style.display = "none";
   }
+
+  document.getElementById("saveButton").addEventListener("click", saveCredentials);
 });
 
-document.getElementById("saveButton").addEventListener("click", saveCredentials);
 
 function saveCredentials() {
   const username = document.getElementById("userInput").value;

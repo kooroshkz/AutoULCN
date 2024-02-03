@@ -5,7 +5,7 @@ const fillForm = () => {
     const loginButton = document.querySelector('button[name="login"]');
   
     if (userIdInput && passwordInput) {
-      userIdInput.value = 'Hello';
+      userIdInput.value = 'Hoi';
       passwordInput.value = 'Hello123';
       loginButton.click();
     }
