@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "AutofillExt",
+    "version": "1.0",
+    "description": "Automatically fill the login form on Leiden University's website.",
+    "permissions": [
+      "activeTab"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["*://login.uaccess.leidenuniv.nl/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+      "default_popup": "popup.html"
+    }
+  }
+  
