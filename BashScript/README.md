@@ -23,7 +23,7 @@ nano ~/.bashrc
 Add the following line at the end of the file:
 
 ```bash
-alias totp='/usr/bin/totp_script.sh'
+alias totp='/usr/bin/totp_script.sh && exit'
 ```
 
 Save the file and exit the text editor.
@@ -34,3 +34,14 @@ Run the following command to apply the changes:
 source ~/.bashrc
 ```
 Now, whenever you type "totp" in the terminal, it will automatically run your script, generating the TOTP code and copying it to your clipboard before closing the terminal.
+
+### Set Keyboard Shortcut
+
+- Go to Settings -> Keyboard -> Shortcuts.
+- Add a new shortcut.
+- Set the "Name" to whatever you like, for example, "Run TOTP".
+- In the "Command" field, enter:
+```bash
+    gnome-terminal -- bash -i -c 'totp; exec bash'
+```
+- Assign a key combination for this shortcut.
