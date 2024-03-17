@@ -8,8 +8,6 @@ The extension is developed to prompt for your Secret Key, which is used to gener
 - Load the unpacked extension by selecting the directory.
 
 ## For Firefox:
-#### Last, Permenant Version
-- You can find the extention on Firefox ADD-ONS from [here](https://addons.mozilla.org/en-US/firefox/addon/autoulcn/).
 #### Temporary Unpacked Version
 - open Firefox.
 - enter " about:debugging " in the URL bar.

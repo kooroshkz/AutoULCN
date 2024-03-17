@@ -12,12 +12,6 @@
     },
     "default_popup": "popup.html"
   },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "{df4a18b8-2c76-43e0-ac07-5e6e1929639e}",
-      "strict_min_version": "42.0"
-    }
-  },
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
