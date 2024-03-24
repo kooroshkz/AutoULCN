@@ -1,47 +1,32 @@
 ## AutoULCN Totp Generator using Bash
 
-Easily add your TOTP to the clipboard using a Bash script by simply typing "TOTP" on Linux terminals.
+Easily add your TOTP to the clipboard using a Bash script by simply typing "TOTP" on Unix-like terminals.
 
 ### Step 1
-Install oathtool and xclip
+Clone the project and replace '<secret_key>' with your actual Secret Key in 'totp_script.sh'.
+
 ```bash
-sudo apt-get install oathtool xclip
+nano totp_script.sh
 ```
+You can use nano or any other text editor.
 
 ### Step 2
-Edit totp_script.sh by replacing your secret_key and then move the file to /usr/bin by
+Run the installation script by executing:
 ```bash
-sudo mv totp_script.sh /usr/bin
+./install_AutoULCN.sh
 ```
 
-### Step 3
-- Open your .bashrc or .bash_aliases file. You can use a text editor like nano or vim. For example:
+Now, whenever you type "totp" in the terminal, it will automatically run your script, generating the TOTP code and copying it to your clipboard.
 
-```bash
-nano ~/.bashrc
-```
-Add the following line at the end of the file:
-
-```bash
-alias totp='/usr/bin/totp_script.sh && exit'
-```
-
-Save the file and exit the text editor.
-
-Run the following command to apply the changes:
-
-```bash
-source ~/.bashrc
-```
-Now, whenever you type "totp" in the terminal, it will automatically run your script, generating the TOTP code and copying it to your clipboard before closing the terminal.
+Additionally, typing "totpgo" will close the terminal after execution, making this command suitable for use as a keyboard shortcut.
 
 ### Set Keyboard Shortcut
 
 - Go to Settings -> Keyboard -> Shortcuts.
 - Add a new shortcut.
-- Set the "Name" to whatever you like, for example, "Run TOTP".
+- Set the "Name" to "Run TOTP".
 - In the "Command" field, enter:
 ```bash
-    gnome-terminal -- bash -i -c 'totp; exec bash'
+    gnome-terminal -- bash -i -c 'totpgo; exec bash'
 ```
 - Assign a key combination for this shortcut.
