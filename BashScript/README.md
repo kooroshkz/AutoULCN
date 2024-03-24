@@ -3,9 +3,9 @@
 Easily add your TOTP to the clipboard using a Bash script by simply typing "TOTP" on Linux terminals.
 
 ### Step 1
-Install oathtool
+Install oathtool and xclip
 ```bash
-sudo apt-get install oathtool
+sudo apt-get install oathtool xclip
 ```
 
 ### Step 2
