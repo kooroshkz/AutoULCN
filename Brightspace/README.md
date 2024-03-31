@@ -13,17 +13,50 @@ There are two methods for this matter:
 - Hardcode into 'Brightspace.py' by following instructions via comments.
 
 ### Run
-You can run python script by 
+You can run Python script by 
 ```bash
 python Brightspace.py
 ```
 
-#### Make it executable
+### Make it executable (Optional)
 Install pyinstaller via
 ```bash
 pip install pyinstaller
 ```
 then run
 ```bash
-pyinstaller Brightspace.py
+pyinstaller --onefile --noconsole Brightspace.py
 ```
+
+### Terminal alias and Shortcut (For Unix-like OS)
+```bash
+# After making Brightspace executable
+sudo cp ./Brightspace /usr/bin
+```
+
+Add the following line to ~/.bashrc or ~/.zshrc
+```bash
+alias brightspace='(nohup /usr/bin/Brightspace 2>/dev/null >/dev/null &); exit'
+```
+Refresh via
+```bash
+source ~/.bashrc
+# or
+source ~/.zshhrc
+```
+
+Then for adding keyboard shortcut:
+
+- Go to Settings -> Keyboard -> Shortcuts.
+- Add a new shortcut from 'Custom Shortcuts'.
+- Set the "Name" to "Run TOTP".
+- In the "Command" field, enter:
+```bash
+    # For Bash
+    gnome-terminal -- bash -i -c 'brightspace; exec bash'
+    
+    # For Zsh
+    gnome-terminal -- zsh -i -c 'brightspace; exec zsh'
+```
+
+
