@@ -48,9 +48,18 @@ After setting up this authentication method by entering your generated TOTP we a
 
 Now choose your prefered AutoULCN Method from the directories above:
 
-- Extention: An initial local version of extention that will locally store your secret_key for generating and copying the TOTP code
+- **Chrome Extention**: An initial local version of extention that will locally store your secret_key for generating and copying the TOTP code
 
 <img src="Files/Extention_Preview.png" alt="MSF" width="400">
 
-- Brightspace: A python script that runnig selenium and auto-filling your
+- **Brightspace**: A python script that runnig selenium and auto-filling your
 
+<img src="Files/Brightspace_Preview.png" alt="MSF" width="400">
+
+- **Bash Script**: Install totp generator as bash script on your shell
+
+ <img src="Files/Bash_Preview.png" alt="MSF" width="300">
+
+## Contribution
+
+You're always welcomed to send pull requests by Forking Repository and adding a new feature or help fixing the code issues.
