@@ -15,7 +15,8 @@ In this open-source project, we aim to implement a swift and secure two-step ver
 
 ### Setup Video
 
-[![AutoULCN Setup Guide](https://img.youtube.com/vi/52kdsJtcGTY/0.jpg)](https://www.youtube.com/watch?v=52kdsJtcGTY)
+[![AutoULCN Setup Guide](Files/cover.png)](https://www.youtube.com/watch?v=52kdsJtcGTY)
+Click <a href="https://www.youtube.com/watch?v=52kdsJtcGTY">here</a> to watch setup tutorial video
 
 ### Setup Guide
 
@@ -26,7 +27,7 @@ Keep in mind the first step would be the hardest so keep an eye on the documenta
 ### Step 1
 Log in and gain access to <a href="https://account.services.universiteitleiden.nl/">Account service</a> and select 'Multi-Factor Authentication'.
 
-<img src="Files/account_service.png" alt="MSF" width="400">
+<img src="Files/account_service.png" alt="MSF" width="500">
 
 ### Step 2
 Enroll or Modify for 'Non-NetIQ Authenticator'
@@ -50,15 +51,15 @@ Now choose your preferred AutoULCN Method from the directories above:
 
 - **Chrome Extention**: An initial local version of the extension that will locally store your secret_key for generating and copying the TOTP code
 
-<img src="Files/Extention_Preview.gif" alt="MSF" width="400">
+<img src="Files/Extention_Preview.gif" alt="MSF" width="500">
 
 - **Brightspace**: A Python script that running Selenium and auto-filling your
 
-<img src="Files/Brightspace_Preview.gif" alt="MSF" width="350">
+<img src="Files/Brightspace_Preview.gif" alt="MSF" width="450">
 
 - **Bash Script**: Install totp generator as bash script on your shell
 
- <img src="Files/Bash_Preview.png" alt="MSF" width="300">
+ <img src="Files/Bash_Preview.png" alt="MSF" width="400">
 
 ## Contribution
 
