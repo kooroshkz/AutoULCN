@@ -1,3 +1,4 @@
+import os
 import time, pyotp
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -5,6 +6,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+script_dir = os.path.dirname(__file__)
+credentials_file_path = os.path.join(script_dir, 'Credentials.txt')
 
 # You can hardcode your credentials here.
 # Username = "Your Username"
@@ -12,14 +15,12 @@ from selenium.webdriver.support import expected_conditions as EC
 # Secret_Key = "Your Secret Key"
 
 # And comment out the following code block.
-with open('Credentials.txt', 'r') as file:
+with open(credentials_file_path, 'r') as file:
 
     for line in file:
         variable, value = line.strip().split(' = ')
         value = value.strip('"')
         exec(f'{variable} = "{value}"')
-
-
 
 
 url = "https://brightspace.universiteitleiden.nl"
