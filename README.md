@@ -18,7 +18,7 @@ We use the Non-NetIQ Authentication method to gain access to your Secret_Key to 
 Keep in mind the first step would be the hardest so keep an eye on the documentation and videos.
 
 ### Step 1
-Log in and gain access to [Account service]("https://account.services.universiteitleiden.nl/") and select 'Multi-Factor Authentication'.
+Log in and gain access to <a href="https://account.services.universiteitleiden.nl/">Account service</a> and select 'Multi-Factor Authentication'.
 
 <img src="Files/account_service.png" alt="MSF" width="400">
 
@@ -27,7 +27,7 @@ Enroll or Modify for 'Non-NetIQ Authenticator'
 
 The story is about the QR-Code in front of you, your Secret_Key is embedded in this QR so you can Extract the key via
 - 'AutoULCN Key_extractor' available from the above directories
-- Manually extracting the key by [Qr-Reader]("https://scanqr.org/#scan") and you can find your secret key in the following format:
+- Manually extracting the key by <a href="https://scanqr.org/#scan)">Qr-Reader</a> and you can find your secret key in the following format:
 ```
 otpauth://totp/Leiden%20University:UL%5Cs**Student Number**?secret=**Secret_Key**&issuer=Leiden+University
 ```
@@ -40,13 +40,13 @@ After setting up this authentication method by entering your generated TOTP we a
 
 ### Step 4
 
-Now choose your prefered AutoULCN Method from the directories above:
+Now choose your preferred AutoULCN Method from the directories above:
 
-- **Chrome Extention**: An initial local version of extention that will locally store your secret_key for generating and copying the TOTP code
+- **Chrome Extention**: An initial local version of the extension that will locally store your secret_key for generating and copying the TOTP code
 
 <img src="Files/Extention_Preview.png" alt="MSF" width="400">
 
-- **Brightspace**: A python script that runnig selenium and auto-filling your
+- **Brightspace**: A Python script that running Selenium and auto-filling your
 
 <img src="Files/Brightspace_Preview.png" alt="MSF" width="400">
 
@@ -56,4 +56,4 @@ Now choose your prefered AutoULCN Method from the directories above:
 
 ## Contribution
 
-You're always welcomed to send pull requests by Forking Repository and adding a new feature or help fixing the code issues.
+You're always welcome to send pull requests by Forking Repository and add a new feature or help fix the code issues.
