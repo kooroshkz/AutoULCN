@@ -13,6 +13,12 @@ In this open-source project, we aim to implement a swift and secure two-step ver
 
 ## How to start?
 
+### Setup Video
+
+[![AutoULCN Setup Guide](https://img.youtube.com/vi/52kdsJtcGTY/0.jpg)](https://www.youtube.com/watch?v=52kdsJtcGTY)
+
+### Setup Guide
+
 We use the Non-NetIQ Authentication method to gain access to your Secret_Key to be able to generate and auto-fill the 6-digit key called TOTP (Time-based one-time password)
 
 Keep in mind the first step would be the hardest so keep an eye on the documentation and videos.
@@ -32,8 +38,8 @@ The story is about the QR-Code in front of you, your Secret_Key is embedded in t
 otpauth://totp/Leiden%20University:UL%5Cs**Student Number**?secret=**Secret_Key**&issuer=Leiden+University
 ```
 As a backup always use a Third-Party authenticator as well like:
-- [Google Authenticator]("https://github.com/google/google-authenticator") 
-- [Microsoft Authenticator]("https://www.microsoft.com/en-us/security/mobile-authenticator-app")
+- <a href="https://scanqr.org/#scan">Google Authenticator</a>
+- <a href="https://scanqr.org/#scan">Microsoft Authenticator</a>
 
 ### Step 3
 After setting up this authentication method by entering your generated TOTP we are ready to use AutoULCN
@@ -44,11 +50,11 @@ Now choose your preferred AutoULCN Method from the directories above:
 
 - **Chrome Extention**: An initial local version of the extension that will locally store your secret_key for generating and copying the TOTP code
 
-<img src="Files/Extention_Preview.png" alt="MSF" width="400">
+<img src="Files/Extention_Preview.gif" alt="MSF" width="400">
 
 - **Brightspace**: A Python script that running Selenium and auto-filling your
 
-<img src="Files/Brightspace_Preview.png" alt="MSF" width="400">
+<img src="Files/Brightspace_Preview.gif" alt="MSF" width="350">
 
 - **Bash Script**: Install totp generator as bash script on your shell
 
