@@ -38,12 +38,6 @@ As a backup always use a Third-Party authenticator as well like:
 ### Step 3
 After setting up this authentication method by entering your generated TOTP we are ready to use AutoULCN
 
-
-
-## Extension Installation Tutorial
-
-[![Alt text](https://img.youtube.com/vi/Y_q0O2S5FNI/0.jpg)](https://www.youtube.com/watch?v=Y_q0O2S5FNI)
-
 ### Step 4
 
 Now choose your prefered AutoULCN Method from the directories above:

@@ -19,3 +19,7 @@ The extension is developed to prompt for your Secret Key, which is used to gener
     ```
     zip -r AutoULCN.xpi .
     ```
+
+## Extension Installation Tutorial
+
+[![Alt text](https://img.youtube.com/vi/Y_q0O2S5FNI/0.jpg)](https://www.youtube.com/watch?v=Y_q0O2S5FNI)
