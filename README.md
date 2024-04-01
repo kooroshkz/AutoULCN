@@ -15,8 +15,8 @@ In this open-source project, we aim to implement a swift and secure two-step ver
 
 ### Setup Video
 
-[![AutoULCN Setup Guide](Files/cover.png)](https://www.youtube.com/watch?v=52kdsJtcGTY)
-Click <a href="https://www.youtube.com/watch?v=52kdsJtcGTY">here</a> to watch setup tutorial video
+[![AutoULCN Setup Guide](Files/cover.png)](https://youtu.be/52kdsJtcGTY)
+Click <a href="https://youtu.be/52kdsJtcGTY">here</a> to watch setup tutorial video
 
 ### Setup Guide
 
