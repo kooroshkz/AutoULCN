@@ -76,4 +76,11 @@ elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
 else:
         print("UNKNOWN URL")
 
-input("Press any key to close...")
+while True:
+    try:
+        time.sleep(1)
+    except KeyboardInterrupt:
+        print("Exiting program.")
+        break
+
+driver.quit()
