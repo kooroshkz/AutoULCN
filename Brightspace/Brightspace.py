@@ -1,38 +1,60 @@
 import os
-import time, pyotp
+import pyotp
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import appdirs
+from configparser import ConfigParser
+from time import sleep
 
-script_dir = os.path.dirname(__file__)
-credentials_file_path = os.path.join(script_dir, 'Credentials.txt')
+app_name = "AUTOULCN"
+config_dir = appdirs.user_data_dir(app_name)
+config_path = os.path.join(config_dir, 'config.ini')
 
-# You can hardcode your credentials here.
-# Username = "Your Username"
-# Password = "Your Password"
-# Secret_Key = "Your Secret Key"
+if not os.path.exists(config_dir):
+    os.makedirs(config_dir)
 
-# And comment out the following code block.
-with open(credentials_file_path, 'r') as file:
+# Fetch or write credentials from a config file
+def get_credentials():
+    config = ConfigParser()
+    if os.path.exists(config_path):
+        config.read(config_path)
+        username = config.get('Credentials', 'username', fallback=None)
+        password = config.get('Credentials', 'password', fallback=None)
+        secret_key = config.get('Credentials', 'secret_key', fallback=None)
+    else:
+        username = password = secret_key = None
 
-    for line in file:
-        variable, value = line.strip().split(' = ')
-        value = value.strip('"')
-        exec(f'{variable} = "{value}"')
+    if not username:
+        username = input("Enter Username: ")
+    if not password:
+        password = input("Enter Password: ")
+    if not secret_key:
+        secret_key = input("Enter Secret Key: ")
 
+    # Save the credentials back to the config file
+    config['Credentials'] = {
+        'username': username,
+        'password': password,
+        'secret_key': secret_key
+    }
+    with open(config_path, 'w') as configfile:
+        config.write(configfile)
 
+    return username, password, secret_key
+
+Username, Password, Secret_Key = get_credentials()
+
+# Selenium automation script
 url = "https://brightspace.universiteitleiden.nl"
 driver = webdriver.Chrome()
-
 driver.get(url)
 
 def url_changes(old_url):
     def _url_changes(driver):
         return driver.current_url != old_url
     return _url_changes
-
 
 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
@@ -74,11 +96,11 @@ if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
 elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
     print("Already Signed In")
 else:
-        print("UNKNOWN URL")
+    print("UNKNOWN URL")
 
 while True:
     try:
-        time.sleep(1)
+        sleep(1)
     except KeyboardInterrupt:
         print("Exiting program.")
         break
