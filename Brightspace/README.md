@@ -1,62 +1,76 @@
 # Logged-in Brightspace Loader
+
+## Project Details
+
+**Brightspace.py:**  
+This script automates the login process for Brightspace using Selenium. Credentials are securely stored within the script itself.
+
+**For updating credentials:**
+The credentials are stored in a configuration file named `config.ini`, which is located in a directory specific to the application. The location of this directory varies depending on the operating system:
+
+- **Windows:** `C:\Users\<Username>\AppData\Local\AUTOULCN\config.ini`
+- **macOS:** `~/Library/Application Support/AUTOULCN/config.ini`
+- **Linux:** `~/.local/share/AUTOULCN/config.ini`
+
+The directory and file are automatically created if they do not exist, and the credentials are updated whenever the script is run.
+
 ## Python Non-Executable Version
 
-## Setup
-### Install requirements via
+### Setup
+
+#### 1. Install Requirements
+Install the required packages by running:
 ```bash
 pip install -r requirements.txt
 ```
 
-### Configure Credentials
-There are two methods for this matter:
-- Edit the file Credentials.txt.
-- Hardcode into 'Brightspace.py' by following instructions via comments.
+#### 2. Configure Credentials
+Set up your credentials directly within the script by following the comments provided in `Brightspace.py`. This approach simplifies the process by avoiding external files.
 
 ### Run
-You can run Python script by 
+To run the script, use:
 ```bash
 python Brightspace.py
 ```
 
-### Make it executable (Optional)
-Install pyinstaller via
+### Optional: Make it Executable
+To convert the script into an executable, first install PyInstaller:
 ```bash
 pip install pyinstaller
 ```
-then run
+Then create the executable:
 ```bash
 pyinstaller --onefile --noconsole Brightspace.py
 ```
 
-### Terminal alias and Shortcut (For Unix-like OS)
-```bash
-# After making Brightspace executable
-sudo cp ./Brightspace /usr/bin
-```
+### Optional: Create Terminal Alias and Shortcut (For Unix-like OS)
+To easily run the executable, you can create a terminal alias and keyboard shortcut:
 
-Add the following line to ~/.bashrc or ~/.zshrc
-```bash
-alias brightspace='(nohup /usr/bin/Brightspace 2>/dev/null >/dev/null &); exit'
-```
-Refresh via
-```bash
-source ~/.bashrc
-# or
-source ~/.zshhrc
-```
+1. **Copy Executable to `/usr/bin`:**
+   ```bash
+   sudo cp ./Brightspace /usr/bin
+   ```
 
-Then for adding keyboard shortcut:
+2. **Add Alias to `.bashrc` or `.zshrc`:**
+   ```bash
+   alias brightspace='(nohup /usr/bin/Brightspace 2>/dev/null >/dev/null &); exit'
+   ```
 
-- Go to Settings -> Keyboard -> Shortcuts.
-- Add a new shortcut from 'Custom Shortcuts'.
-- Set the "Name" to "Run TOTP".
-- In the "Command" field, enter:
-```bash
-    # For Bash
-    gnome-terminal -- bash -i -c 'brightspace; exec bash'
-    
-    # For Zsh
-    gnome-terminal -- zsh -i -c 'brightspace; exec zsh'
-```
+3. **Refresh Shell Configuration:**
+   ```bash
+   source ~/.bashrc
+   # or
+   source ~/.zshrc
+   ```
 
-
+4. **Add Keyboard Shortcut:**
+   - Go to `Settings` -> `Keyboard` -> `Shortcuts`.
+   - Add a new shortcut under `Custom Shortcuts`.
+   - Set "Name" to "Run Brightspace" and "Command" to:
+     ```bash
+     # For Bash
+     gnome-terminal -- bash -i -c 'brightspace; exec bash'
+     
+     # For Zsh
+     gnome-terminal -- zsh -i -c 'brightspace; exec zsh'
+     ```

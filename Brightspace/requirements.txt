@@ -1,2 +1,4 @@
 pyotp
 selenium
+appdirs
+configparser
