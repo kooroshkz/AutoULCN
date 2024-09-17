@@ -23,7 +23,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       totpSection.style.display = "flex";
       secretKeyInputElement.style.display = "none";
       saveButton.style.display = "none";
-      copyToClipboard(totpCode);  // Auto copy TOTP on load
+      copyToClipboard(totpCode);  // Automatically copy TOTP on load
 
       copyButton.addEventListener("click", function () {
         copyToClipboard(totpCode);
@@ -46,18 +46,18 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   settingsButton.addEventListener("click", function () {
     mainPage.style.display = "none";
     settingsPage.style.display = "block";
-    settingsButton.style.display = "none";  // Hide settings icon in settings page
+    settingsButton.style.display = "none";
   });
 
   backButton.addEventListener("click", function () {
     settingsPage.style.display = "none";
     mainPage.style.display = "block";
-    settingsButton.style.display = "inline";  // Show settings icon when back to main page
+    settingsButton.style.display = "inline";
   });
 
   resetButton.addEventListener("click", function () {
     localStorage.removeItem("Secret_Key");
-    location.reload();  // Refresh the popup to go back to the beginning
+    location.reload();  // Refresh the popup to go back to the initial state
   });
 });
 

@@ -6,18 +6,19 @@
   <title>AutoULCN</title>
   <style>
     body {
-      width: 320px;  /* Kept the increased width for more horizontal space */
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
+      background-color: transparent;
+      overflow: hidden; /* Prevent scrollbars */
     }
 
     #popup-content {
-      width: 100%;
+      width: 320px;
       padding: 20px;
       background-color: white;
       border-radius: 10px;
@@ -90,13 +91,13 @@
     #settingsButtons {
       display: flex;
       justify-content: center;
-      gap: 0;  /* No space between buttons */
+      gap: 0;
       margin-top: 20px;
     }
 
     #settingsButtons button {
-      width: 50%;  /* Ensure both buttons take equal space */
-      margin: 0;  /* Remove any auto margins */
+      width: 50%;
+      margin: 0;
     }
 
     @media (max-width: 320px) {
@@ -111,7 +112,7 @@
 
     #saveButton {
       display: block;
-      margin: 0 auto;  /* Centering the save button */
+      margin: 0 auto;
     }
   </style>
 </head>

@@ -1,8 +1,7 @@
-// content.js
 const fillForm = () => {
     const totp = new jsOTP.totp();
     const storedSecretKey = localStorage.getItem("Secret_Key");
-    
+
     if (storedSecretKey) {
         const totpCode = totp.getOtp(storedSecretKey);
         copyToClipboard(totpCode);
