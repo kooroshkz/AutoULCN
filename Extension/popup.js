@@ -6,39 +6,65 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const statusElement = document.getElementById("status");
   const secretKeyInputElement = document.getElementById("secretKeyInput");
   const saveButton = document.getElementById("saveButton");
+  const totpCodeValueElement = document.getElementById("totpCodeValue");
+  const copyButton = document.getElementById("copyButton");
+  const totpSection = document.getElementById("totpSection");
+  const settingsButton = document.getElementById("settingsButton");
+  const mainPage = document.getElementById("mainPage");
+  const settingsPage = document.getElementById("settingsPage");
+  const resetButton = document.getElementById("resetButton");
+  const backButton = document.getElementById("backButton");
 
   if (isULCN) {
     if (storedSecretKey) {
       const totp = new jsOTP.totp();
       const totpCode = totp.getOtp(storedSecretKey);
-      copyToClipboard(totpCode);
-      statusElement.textContent = "Current TOTP Code: " + totpCode;
+      totpCodeValueElement.textContent = totpCode;
+      totpSection.style.display = "flex";
       secretKeyInputElement.style.display = "none";
       saveButton.style.display = "none";
+      copyToClipboard(totpCode);  // Auto copy TOTP on load
+
+      copyButton.addEventListener("click", function () {
+        copyToClipboard(totpCode);
+      });
     } else {
       statusElement.textContent = "Enter your TOTP secret key:";
       secretKeyInputElement.style.display = "block";
       saveButton.style.display = "block";
+      totpSection.style.display = "none";
     }
   } else {
     statusElement.textContent = "You're not on ULCN login page";
     secretKeyInputElement.style.display = "none";
     saveButton.style.display = "none";
+    totpSection.style.display = "none";
   }
 
-  document.getElementById("saveButton").addEventListener("click", saveSecretKey);
+  saveButton.addEventListener("click", saveSecretKey);
+
+  settingsButton.addEventListener("click", function () {
+    mainPage.style.display = "none";
+    settingsPage.style.display = "block";
+    settingsButton.style.display = "none";  // Hide settings icon in settings page
+  });
+
+  backButton.addEventListener("click", function () {
+    settingsPage.style.display = "none";
+    mainPage.style.display = "block";
+    settingsButton.style.display = "inline";  // Show settings icon when back to main page
+  });
+
+  resetButton.addEventListener("click", function () {
+    localStorage.removeItem("Secret_Key");
+    location.reload();  // Refresh the popup to go back to the beginning
+  });
 });
 
 function saveSecretKey() {
   const secretKey = document.getElementById("secretKeyInput").value;
   localStorage.setItem("Secret_Key", secretKey);
-
-  const totp = new jsOTP.totp();
-  const totpCode = totp.getOtp(secretKey);
-  copyToClipboard(totpCode);
-  document.getElementById("status").textContent = "Current TOTP Code: " + totpCode;
-  document.getElementById("secretKeyInput").style.display = "none";
-  document.getElementById("saveButton").style.display = "none";
+  location.reload();  // Refresh to show TOTP code
 }
 
 function copyToClipboard(text) {

@@ -1,19 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AutoULCN</title>
   <style>
     body {
-      width: 300px;
+      width: 320px;  /* Kept the increased width for more horizontal space */
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #popup-content {
+      width: 100%;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    p#status {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #000060;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #000080;
+    }
+
+    button:active {
+      background-color: #000040;
+    }
+
+    #totpCode {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #000060;
+      gap: 10px;
+    }
+
+    #copyButton, #settingsButton {
+      flex-shrink: 0;
+    }
+
+    #settingsButton {
+      font-size: 18px;
+      cursor: pointer;
+      color: #000060;
+    }
+
+    #settingsPage {
+      display: none;
+      text-align: center;
+    }
+
+    #settingsButtons {
+      display: flex;
+      justify-content: center;
+      gap: 0;  /* No space between buttons */
+      margin-top: 20px;
+    }
+
+    #settingsButtons button {
+      width: 50%;  /* Ensure both buttons take equal space */
+      margin: 0;  /* Remove any auto margins */
+    }
+
+    @media (max-width: 320px) {
+      body {
+        padding: 10px;
+      }
+
+      input[type="text"], button {
+        font-size: 12px;
+      }
+    }
+
+    #saveButton {
+      display: block;
+      margin: 0 auto;  /* Centering the save button */
     }
   </style>
 </head>
 <body>
   <div id="popup-content">
-    <p id="status"></p>
-    <input type="text" id="secretKeyInput" placeholder="Enter TOTP Secret Key">
-    <button id="saveButton">Save</button>
+    <div id="mainPage">
+      <p id="status"></p>
+      <div id="totpSection" style="display:none;">
+        <div id="totpCode">
+          <span>Current TOTP Code: <span id="totpCodeValue"></span></span>
+          <button id="copyButton">Copy!</button>
+          <span id="settingsButton">⚙️</span>
+        </div>
+      </div>
+      <input type="text" id="secretKeyInput" placeholder="Enter TOTP Secret Key">
+      <button id="saveButton">Save</button>
+    </div>
+
+    <div id="settingsPage">
+      <p>Settings</p>
+      <div id="settingsButtons">
+        <button id="resetButton">Reset Secret Key</button>
+        <button id="backButton">Back</button>
+      </div>
+    </div>
   </div>
+
   <script src="dist/jsOTP.min.js"></script>
   <script src="popup.js"></script>
 </body>
