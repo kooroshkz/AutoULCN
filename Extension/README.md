@@ -1,25 +1,26 @@
 # AutoULCN Web Extension
 
-The extension is developed to prompt for your Secret Key, which is used to generate a TOTP code. After generating the code, it is automatically copied to the clipboard.
+AutoULCN simplifies Leiden University logins by generating and auto-filling a TOTP code. It securely stores your secret key and copies the TOTP code to the clipboard for seamless login.
 
-## For Google Chrome (Recommended):
-- Download the extension directory.
-- Enable developer mode from the Extension management page.
-- Load the unpacked extension by selecting the directory.
+## Installation
 
-## For Firefox:
-#### Temporary Unpacked Version
-- open Firefox.
-- enter " about:debugging " in the URL bar.
-- click "This Firefox"
-- click "Load Temporary Add-on"
-- open the extension's directory and select any file inside the extension, or select the packaged extension (.xpi file).
-##### For generating .xpi file after your changes:
-- Run the following command via terminal in the project directory:
-    ```
-    zip -r AutoULCN.xpi .
-    ```
+### Google Chrome (Recommended):
+1. Download the extension folder.
+2. Go to the Extensions page, enable **Developer mode**.
+3. Select **Load unpacked** and choose the extension folder in `AutoULCN/Extension`
 
-## Extension Installation Tutorial
+### Firefox:
+#### Temporary Unpacked Version:
+1. Open Firefox and go to `about:debugging`.
+2. Click **This Firefox**, then **Load Temporary Add-on**.
+3. Select any file inside the extension folder or the `.xpi` file.
 
-[![Alt text](https://img.youtube.com/vi/Y_q0O2S5FNI/0.jpg)](https://www.youtube.com/watch?v=Y_q0O2S5FNI)
+#### Packaging for Firefox (.xpi):
+1. In the project directory, run:
+   ```
+   zip -r AutoULCN.xpi .
+   ```
+
+## Extension Installation Tutorial:
+[![Installation Tutorial](https://img.youtube.com/vi/Y_q0O2S5FNI/0.jpg)](https://www.youtube.com/watch?v=Y_q0O2S5FNI)
+
