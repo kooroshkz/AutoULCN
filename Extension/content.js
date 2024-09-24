@@ -1,25 +1,30 @@
-const fillForm = () => {
+const fillTOTPForm = () => {
     const totp = new jsOTP.totp();
-    const storedSecretKey = localStorage.getItem("Secret_Key");
 
-    if (storedSecretKey) {
-        const totpCode = totp.getOtp(storedSecretKey);
-        copyToClipboard(totpCode);
-    }
+    chrome.storage.local.get('Secret_Key', function(result) {
+        const storedSecretKey = result.Secret_Key;
+
+        if (storedSecretKey) {
+            const totpCode = totp.getOtp(storedSecretKey);
+
+            // Locate the TOTP input field using its ID 'nffc'
+            const totpInputField = document.getElementById('nffc');
+            if (totpInputField) {
+                totpInputField.value = totpCode; // Auto-fill TOTP code into the field
+
+                // Optionally auto-submit the form if required
+                const nextButton = document.getElementById('loginButton2');
+                if (nextButton) {
+                    nextButton.click(); // Simulate clicking the "Next" button to submit the form
+                }
+            }
+        }
+    });
 };
 
-// Execute the function when the DOM is ready
+// Trigger function when the page is loaded
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    fillForm();
+    fillTOTPForm();
 } else {
-    document.addEventListener('DOMContentLoaded', fillForm);
-}
-
-function copyToClipboard(text) {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
+    document.addEventListener('DOMContentLoaded', fillTOTPForm);
 }
