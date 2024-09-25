@@ -36,7 +36,6 @@ def install_dependencies():
             subprocess.check_call([sys.executable, "-m", "pip", "install", module])
     print("All dependencies are installed.")
 
-# Get credentials from the config file
 def get_credentials(prompt_for_update=False):
     config = ConfigParser()
     if os.path.exists(config_path):
@@ -87,7 +86,7 @@ def get_credentials(prompt_for_update=False):
 
     return username, password, secret_key
 
-# Build executable with custom icon
+# Build executable using pyinstaller for all platforms
 def build_executable():
     current_os = platform.system().lower()
     try:
