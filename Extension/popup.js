@@ -1,6 +1,8 @@
 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const currentTab = tabs[0];
-  const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl") || currentTab.url.startsWith("https://mfa.services.universiteitleiden.nl");
+  const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl") || 
+                 currentTab.url.startsWith("https://mfa.services.universiteitleiden.nl") ||
+                 currentTab.url.startsWith("https://account.services.universiteitleiden.nl/portaal");
 
   chrome.storage.local.get('Secret_Key', function (result) {
     const storedSecretKey = result.Secret_Key;
@@ -17,6 +19,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const backButton = document.getElementById("backButton");
 
     if (isULCN) {
+      detectAndSaveSecretKey();
       if (storedSecretKey) {
         const totp = new jsOTP.totp();
         const totpCode = totp.getOtp(storedSecretKey);
@@ -24,7 +27,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         totpSection.style.display = "flex";
         secretKeyInputElement.style.display = "none";
         saveButton.style.display = "none";
-        copyToClipboard(totpCode);  // Automatically copy TOTP on load
+        copyToClipboard(totpCode);
 
         copyButton.addEventListener("click", function () {
           copyToClipboard(totpCode);
@@ -58,16 +61,29 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
 
     resetButton.addEventListener("click", function () {
       chrome.storage.local.remove('Secret_Key', function () {
-        location.reload();  // Refresh the popup to go back to the initial state
+        location.reload();
       });
     });
   });
 });
 
+function detectAndSaveSecretKey() {
+  const spanElement = document.querySelector('[data-hidden-value] > .display');
+  if (spanElement && spanElement.innerText !== '••••••••••••••••') {
+    const secretKey = spanElement.innerText;
+    chrome.storage.local.set({ Secret_Key: secretKey }, function () {
+      const statusElement = document.getElementById("status");
+      statusElement.textContent = "Secret Key Detected and Saved!";
+      document.getElementById("secretKeyInput").style.display = "none";
+      document.getElementById("saveButton").style.display = "none";
+    });
+  }
+}
+
 function saveSecretKey() {
   const secretKey = document.getElementById("secretKeyInput").value;
   chrome.storage.local.set({ 'Secret_Key': secretKey }, function () {
-    location.reload();  // Refresh to show TOTP code
+    location.reload();
   });
 }
 

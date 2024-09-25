@@ -1,30 +1,47 @@
-const fillTOTPForm = () => {
-    const totp = new jsOTP.totp();
-
-    chrome.storage.local.get('Secret_Key', function(result) {
-        const storedSecretKey = result.Secret_Key;
-
-        if (storedSecretKey) {
-            const totpCode = totp.getOtp(storedSecretKey);
-
-            // Locate the TOTP input field using its ID 'nffc'
-            const totpInputField = document.getElementById('nffc');
-            if (totpInputField) {
-                totpInputField.value = totpCode; // Auto-fill TOTP code into the field
-
-                // Optionally auto-submit the form if required
-                const nextButton = document.getElementById('loginButton2');
-                if (nextButton) {
-                    nextButton.click(); // Simulate clicking the "Next" button to submit the form
-                }
+const detectAndSaveSecretKey = () => {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.target.classList.contains('display') && mutation.target.innerText !== '••••••••••••••••') {
+                const secretKey = mutation.target.innerText;
+                chrome.storage.local.set({ Secret_Key: secretKey }, () => {
+                    showSecretKeyNotification(secretKey);
+                });
+                observer.disconnect();
             }
-        }
+        });
     });
+
+    const spanElement = document.querySelector('[data-hidden-value] > .display');
+    if (spanElement) {
+        observer.observe(spanElement, { childList: true });
+    }
 };
 
-// Trigger function when the page is loaded
+const showSecretKeyNotification = (secretKey) => {
+    const notificationDiv = document.createElement('div');
+    notificationDiv.style.position = 'fixed';
+    notificationDiv.style.bottom = '20px';
+    notificationDiv.style.right = '20px';
+    notificationDiv.style.padding = '10px';
+    notificationDiv.style.backgroundColor = '#28a745';
+    notificationDiv.style.color = '#fff';
+    notificationDiv.style.zIndex = '9999';
+    notificationDiv.style.borderRadius = '5px';
+    notificationDiv.style.fontFamily = 'Arial, sans-serif';
+
+    const message = document.createElement('p');
+    message.innerText = `Secret Key Detected and Saved: ${secretKey}`;
+    notificationDiv.appendChild(message);
+
+    document.body.appendChild(notificationDiv);
+
+    setTimeout(() => {
+        notificationDiv.remove();
+    }, 5000);
+};
+
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    fillTOTPForm();
+    detectAndSaveSecretKey();
 } else {
-    document.addEventListener('DOMContentLoaded', fillTOTPForm);
+    document.addEventListener('DOMContentLoaded', detectAndSaveSecretKey);
 }
