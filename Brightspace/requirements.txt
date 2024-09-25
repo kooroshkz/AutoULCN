@@ -1,4 +1,0 @@
-pyotp
-selenium
-appdirs
-configparser
