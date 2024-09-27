@@ -10,21 +10,18 @@
 
 ## Installation
 
-### Google Chrome (Recommended):
-1. Download the extension folder.
-2. Go to the Extensions page by entering `chrome://extensions/` in the address bar.
+### Google Chrome:
+1. Download and extract the project zip from [here](https://github.com/kooroshkz/AutoULCN/raw/main/Extension/AutoULCN.zip).
+2. Go to the Extensions page by entering `chrome://extensions/` in the address bar or by selection in the menu.
 3. Enable **Developer mode** by toggling the switch in the upper right corner.
-4. Click **Load unpacked** and choose the `AutoULCN/Extension` folder.
+4. Click **Load unpacked** and choose the extracted `AutoULCN` folder or `Extension` folder if you have downloaded the project repository.
 
 ### Firefox:
 
-#### Temporary Unpacked Version:
-1. Open Firefox and go to `about:debugging`.
-2. Click **This Firefox**, then **Load Temporary Add-on**.
-3. Select any file from the `AutoULCN/Extension` folder.
-
-> **Notice**: A permanent version of the add-on will be available soon after review by the Firefox team.
-
+1. Open Firefox and select `Manage Extensions` or search `about:addons` in the address bar.
+2. Click **Setting Button**, then **Install Add-on From File...**.
+3. Download `AutoULCN.xpi` from [here](https://github.com/kooroshkz/AutoULCN/raw/main/Extension/AutoULCN.xpi) which can also be found in `/Extension/AutoULCN.xpi`.
+4. Select `AutoULCN.xpi` to start using the extension on Firefox.
 ---
 
 ## Setup and How to Use AutoULCN Extension
