@@ -1,10 +1,13 @@
-chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+// Cross-browser compatibility
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
+browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const currentTab = tabs[0];
   const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl") || 
                  currentTab.url.startsWith("https://mfa.services.universiteitleiden.nl") ||
                  currentTab.url.startsWith("https://account.services.universiteitleiden.nl/portaal");
 
-  chrome.storage.local.get('Secret_Key', function (result) {
+  browserAPI.storage.local.get('Secret_Key', function (result) {
     const storedSecretKey = result.Secret_Key;
     const statusElement = document.getElementById("status");
     const secretKeyInputElement = document.getElementById("secretKeyInput");
@@ -15,8 +18,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const settingsButton = document.getElementById("settingsButton");
     const mainPage = document.getElementById("mainPage");
     const settingsPage = document.getElementById("settingsPage");
+    const viewSecretButton = document.getElementById("viewSecretButton");
     const resetButton = document.getElementById("resetButton");
     const backButton = document.getElementById("backButton");
+    const secretKeyDisplay = document.getElementById("secretKeyDisplay");
 
     if (isULCN) {
       detectAndSaveSecretKey();
@@ -32,6 +37,9 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         copyButton.addEventListener("click", function () {
           copyToClipboard(totpCode);
         });
+
+        // Show view secret button in settings if secret key exists
+        viewSecretButton.style.display = "block";
       } else {
         statusElement.textContent = "Enter your TOTP secret key:";
         secretKeyInputElement.style.display = "block";
@@ -43,6 +51,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       secretKeyInputElement.style.display = "none";
       saveButton.style.display = "none";
       totpSection.style.display = "none";
+      
+      // Show view secret button in settings if secret key exists even when not on ULCN page
+      if (storedSecretKey) {
+        viewSecretButton.style.display = "block";
+      }
     }
 
     saveButton.addEventListener("click", saveSecretKey);
@@ -51,16 +64,33 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       mainPage.style.display = "none";
       settingsPage.style.display = "block";
       settingsButton.style.display = "none";
+      // Hide secret key display when entering settings
+      secretKeyDisplay.style.display = "none";
     });
 
     backButton.addEventListener("click", function () {
       settingsPage.style.display = "none";
       mainPage.style.display = "block";
       settingsButton.style.display = "inline";
+      // Hide secret key display when going back
+      secretKeyDisplay.style.display = "none";
+    });
+
+    viewSecretButton.addEventListener("click", function () {
+      if (storedSecretKey) {
+        if (secretKeyDisplay.style.display === "none" || secretKeyDisplay.style.display === "") {
+          secretKeyDisplay.textContent = storedSecretKey;
+          secretKeyDisplay.style.display = "block";
+          viewSecretButton.textContent = "Hide Secret Key";
+        } else {
+          secretKeyDisplay.style.display = "none";
+          viewSecretButton.textContent = "View Secret Key";
+        }
+      }
     });
 
     resetButton.addEventListener("click", function () {
-      chrome.storage.local.remove('Secret_Key', function () {
+      browserAPI.storage.local.remove('Secret_Key', function () {
         location.reload();
       });
     });
@@ -71,7 +101,7 @@ function detectAndSaveSecretKey() {
   const spanElement = document.querySelector('[data-hidden-value] > .display');
   if (spanElement && spanElement.innerText !== '••••••••••••••••') {
     const secretKey = spanElement.innerText;
-    chrome.storage.local.set({ Secret_Key: secretKey }, function () {
+    browserAPI.storage.local.set({ Secret_Key: secretKey }, function () {
       const statusElement = document.getElementById("status");
       statusElement.textContent = "Secret Key Detected and Saved!";
       document.getElementById("secretKeyInput").style.display = "none";
@@ -82,7 +112,7 @@ function detectAndSaveSecretKey() {
 
 function saveSecretKey() {
   const secretKey = document.getElementById("secretKeyInput").value;
-  chrome.storage.local.set({ 'Secret_Key': secretKey }, function () {
+  browserAPI.storage.local.set({ 'Secret_Key': secretKey }, function () {
     location.reload();
   });
 }

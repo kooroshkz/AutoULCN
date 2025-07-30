@@ -1,9 +1,12 @@
+// Cross-browser compatibility
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
 const detectAndSaveSecretKey = () => {
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.target.classList.contains('display') && mutation.target.innerText !== '••••••••••••••••') {
                 const secretKey = mutation.target.innerText;
-                chrome.storage.local.set({ Secret_Key: secretKey }, () => {
+                browserAPI.storage.local.set({ Secret_Key: secretKey }, () => {
                     showSecretKeyNotification(secretKey);
                 });
                 observer.disconnect();
