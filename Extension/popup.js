@@ -1,6 +1,22 @@
 // Cross-browser compatibility
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
+// Simple animation utilities
+function showElement(element) {
+  element.classList.remove('hidden');
+  element.style.display = 'block';
+}
+
+function hideElement(element) {
+  element.classList.add('hidden');
+  element.style.display = 'none';
+}
+
+function showNotification(message, type = 'success') {
+  console.log(`${type.toUpperCase()}: ${message}`);
+  // Simple notification for debugging - you can enhance this later
+}
+
 browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
   const currentTab = tabs[0];
   const isULCN = currentTab.url.startsWith("https://login.uaccess.leidenuniv.nl") || 
@@ -29,28 +45,33 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const totp = new jsOTP.totp();
         const totpCode = totp.getOtp(storedSecretKey);
         totpCodeValueElement.textContent = totpCode;
-        totpSection.style.display = "flex";
-        secretKeyInputElement.style.display = "none";
-        saveButton.style.display = "none";
+        
+        showElement(totpSection);
+        hideElement(secretKeyInputElement.parentElement);
+        hideElement(saveButton);
+        statusElement.textContent = "";
+        
         copyToClipboard(totpCode);
+        showNotification('TOTP code copied to clipboard!');
 
         copyButton.addEventListener("click", function () {
           copyToClipboard(totpCode);
+          showNotification('Code copied!');
         });
 
         // Show view secret button in settings if secret key exists
         viewSecretButton.style.display = "block";
       } else {
-        statusElement.textContent = "Enter your TOTP secret key:";
-        secretKeyInputElement.style.display = "block";
-        saveButton.style.display = "block";
-        totpSection.style.display = "none";
+        statusElement.textContent = "Enter your TOTP secret key";
+        showElement(secretKeyInputElement.parentElement);
+        showElement(saveButton);
+        hideElement(totpSection);
       }
     } else {
-      statusElement.textContent = "You're not on ULCN login page";
-      secretKeyInputElement.style.display = "none";
-      saveButton.style.display = "none";
-      totpSection.style.display = "none";
+      statusElement.textContent = "Navigate to ULCN login page to use this extension";
+      hideElement(secretKeyInputElement.parentElement);
+      hideElement(saveButton);
+      hideElement(totpSection);
       
       // Show view secret button in settings if secret key exists even when not on ULCN page
       if (storedSecretKey) {
@@ -58,41 +79,62 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       }
     }
 
-    saveButton.addEventListener("click", saveSecretKey);
+    saveButton.addEventListener("click", function() {
+      const secretKey = secretKeyInputElement.value.trim();
+      if (secretKey) {
+        saveButton.textContent = "Saving...";
+        saveButton.disabled = true;
+        
+        setTimeout(() => {
+          saveSecretKey();
+        }, 500);
+      } else {
+        showNotification('Please enter a valid secret key', 'error');
+        secretKeyInputElement.focus();
+      }
+    });
 
     settingsButton.addEventListener("click", function () {
-      mainPage.style.display = "none";
-      settingsPage.style.display = "block";
-      settingsButton.style.display = "none";
-      // Hide secret key display when entering settings
-      secretKeyDisplay.style.display = "none";
+      hideElement(mainPage);
+      showElement(settingsPage);
+      hideElement(settingsButton);
+      hideElement(secretKeyDisplay);
+      viewSecretButton.textContent = "View Secret Key";
     });
 
     backButton.addEventListener("click", function () {
-      settingsPage.style.display = "none";
-      mainPage.style.display = "block";
-      settingsButton.style.display = "inline";
-      // Hide secret key display when going back
-      secretKeyDisplay.style.display = "none";
+      hideElement(settingsPage);
+      showElement(mainPage);
+      showElement(settingsButton);
+      hideElement(secretKeyDisplay);
+      viewSecretButton.textContent = "View Secret Key";
     });
 
     viewSecretButton.addEventListener("click", function () {
       if (storedSecretKey) {
-        if (secretKeyDisplay.style.display === "none" || secretKeyDisplay.style.display === "") {
+        if (secretKeyDisplay.classList.contains('hidden')) {
           secretKeyDisplay.textContent = storedSecretKey;
-          secretKeyDisplay.style.display = "block";
+          showElement(secretKeyDisplay);
           viewSecretButton.textContent = "Hide Secret Key";
         } else {
-          secretKeyDisplay.style.display = "none";
+          hideElement(secretKeyDisplay);
           viewSecretButton.textContent = "View Secret Key";
         }
       }
     });
 
     resetButton.addEventListener("click", function () {
-      browserAPI.storage.local.remove('Secret_Key', function () {
-        location.reload();
-      });
+      if (confirm('Are you sure you want to reset your secret key? You will need to enter it again.')) {
+        resetButton.textContent = "Resetting...";
+        resetButton.disabled = true;
+        
+        browserAPI.storage.local.remove('Secret_Key', function () {
+          showNotification('Secret key reset successfully!');
+          setTimeout(() => {
+            location.reload();
+          }, 1000);
+        });
+      }
     });
   });
 });
@@ -111,15 +153,35 @@ function detectAndSaveSecretKey() {
 }
 
 function saveSecretKey() {
-  const secretKey = document.getElementById("secretKeyInput").value;
-  browserAPI.storage.local.set({ 'Secret_Key': secretKey }, function () {
-    location.reload();
-  });
+  const secretKey = document.getElementById("secretKeyInput").value.trim();
+  if (secretKey) {
+    browserAPI.storage.local.set({ 'Secret_Key': secretKey }, function () {
+      showNotification('Secret key saved successfully!');
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
+    });
+  }
 }
 
 function copyToClipboard(text) {
+  // Modern clipboard API with fallback
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Copied to clipboard using modern API');
+    }).catch(() => {
+      fallbackCopyToClipboard(text);
+    });
+  } else {
+    fallbackCopyToClipboard(text);
+  }
+}
+
+function fallbackCopyToClipboard(text) {
   const textarea = document.createElement("textarea");
   textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
   document.body.appendChild(textarea);
   textarea.select();
   document.execCommand("copy");

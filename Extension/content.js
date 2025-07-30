@@ -22,25 +22,57 @@ const detectAndSaveSecretKey = () => {
 
 const showSecretKeyNotification = (secretKey) => {
     const notificationDiv = document.createElement('div');
-    notificationDiv.style.position = 'fixed';
-    notificationDiv.style.bottom = '20px';
-    notificationDiv.style.right = '20px';
-    notificationDiv.style.padding = '10px';
-    notificationDiv.style.backgroundColor = '#28a745';
-    notificationDiv.style.color = '#fff';
-    notificationDiv.style.zIndex = '9999';
-    notificationDiv.style.borderRadius = '5px';
-    notificationDiv.style.fontFamily = 'Arial, sans-serif';
+    notificationDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        z-index: 99999;
+        border-radius: 12px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transform: translateX(400px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
 
-    const message = document.createElement('p');
-    message.innerText = `Secret Key Detected and Saved: ${secretKey}`;
+    const icon = document.createElement('span');
+    icon.style.cssText = `
+        display: inline-block;
+        margin-right: 8px;
+        font-size: 16px;
+    `;
+    icon.textContent = '🔐';
+
+    const message = document.createElement('span');
+    message.innerHTML = `<strong>Secret Key Detected!</strong><br><small style="opacity: 0.9;">${secretKey.substring(0, 8)}...</small>`;
+
+    notificationDiv.appendChild(icon);
     notificationDiv.appendChild(message);
-
     document.body.appendChild(notificationDiv);
 
+    // Animate in
+    requestAnimationFrame(() => {
+        notificationDiv.style.transform = 'translateX(0)';
+    });
+
+    // Animate out
     setTimeout(() => {
-        notificationDiv.remove();
-    }, 5000);
+        notificationDiv.style.transform = 'translateX(400px)';
+        notificationDiv.style.opacity = '0';
+        setTimeout(() => {
+            if (notificationDiv.parentNode) {
+                notificationDiv.remove();
+            }
+        }, 400);
+    }, 4000);
 };
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
