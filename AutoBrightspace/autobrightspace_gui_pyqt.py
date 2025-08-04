@@ -72,6 +72,41 @@ class LoginWorker(QThread):
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
             
             current_url = self.driver.current_url
+            
+            # Handle SURFconext university selection page
+            if current_url.startswith("https://engine.surfconext.nl/authentication/idp"):
+                self.status_update.emit("Selecting Leiden University...", "yellow")
+                self.log_message.emit("Detected SURFconext page, selecting Leiden University")
+                
+                try:
+                    # Wait for and click the Leiden University option
+                    leiden_button = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, 
+                            "//div[@data-entityid='https://login.uaccess.leidenuniv.nl/nidp/saml2/metadata']"))
+                    )
+                    leiden_button.click()
+                    self.log_message.emit("Clicked on Leiden University option")
+                    
+                    # Wait for page to change after clicking
+                    WebDriverWait(self.driver, 10).until(self.url_changes(current_url))
+                    current_url = self.driver.current_url
+                    self.log_message.emit(f"Redirected to: {current_url}")
+                    
+                except Exception as e:
+                    self.log_message.emit(f"Failed to select Leiden University: {str(e)}")
+                    # Try alternative method - click the submit button inside the form
+                    try:
+                        submit_button = WebDriverWait(self.driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, 
+                                "//form[@action='https://engine.surfconext.nl/authentication/idp/process-wayf']//button[@type='submit']"))
+                        )
+                        submit_button.click()
+                        self.log_message.emit("Clicked submit button as fallback")
+                        WebDriverWait(self.driver, 10).until(self.url_changes(current_url))
+                        current_url = self.driver.current_url
+                    except Exception as e2:
+                        self.log_message.emit(f"Fallback method also failed: {str(e2)}")
+            
             if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
                 self.status_update.emit("Entering credentials...", "yellow")
                 self.log_message.emit("Entering username and password")
@@ -686,10 +721,13 @@ class AutoBrightspaceApp(QMainWindow):
         
         help_text = QLabel("""
 How to get your 2FA Secret Key:
-1. Go to your university's 2FA setup page
-2. When setting up authenticator app, look for "manual entry" or "text code"
-3. Copy the secret key (usually a long string of letters and numbers)
-4. Paste it in the Secret Key field above
+1. Visit the Leiden University Account Service.
+2. Log in with your Leiden University credentials.
+3. Navigate to Multi-Factor Authentication.
+4. Select Enroll/Modify under TOTP Non-NetIQ Authenticator.
+5. You will see ••••••••••••••• displayed under a QR code.
+6. Click on the 👁️ (eye icon) to reveal your secret key.
+
 
 Note: Your credentials are stored locally on your device.
         """)

@@ -1,7 +1,0 @@
-pyotp>=2.6.0
-selenium>=4.0.0
-appdirs>=1.4.4
-pyinstaller>=5.0.0
-webdriver-manager>=3.8.0
-pillow>=8.0.0
-PyQt5>=5.15.0
