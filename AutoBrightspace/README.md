@@ -1,122 +1,52 @@
 # AutoBrightspace
 
-AutoBrightspace automates the login process to the Brightspace portal at Leiden University, handling both username/password authentication and two-factor authentication (2FA). The tool supports configuration, running the automation, and building standalone executables for easier access.
+AutoBrightspace automates the login process to the Brightspace portal at Leiden University, handling both username/password authentication and two-factor authentication (2FA). The tool supports both GUI and CLI modes, configuration, automated login, and building standalone executables.
 
-## Setup Instructions
+## Quick Start
 
-1. **Clone the repository**:
+### GUI Mode (Default)
+Install dependencies and run the application:
+```bash
+pip install -r requirements.txt
+python AutoBrightSpace.py
+```
+User Guide:
+- From **Configuration** tab, set your username, password, and 2FA secret key.
+- In **Main** tab, click "Start Auto Login" to perform the automated login.
+- From **Setup & Build** tab, you can install dependencies and build standalone executables.
+- In **Shortcuts** tab, you can set a keyboard shortcut for quick access.
 
-   If you haven't cloned the repository yet, run the following commands:
+### CLI Mode
+For command-line usage:
 
-   ```bash
-   git clone https://github.com/kooroshkz/AutoULCN.git
-   cd AutoULCN/autobrightspace
-   ```
+**Configure/Change credentials:**
+```bash
+python AutoBrightSpace.py config
+```
 
-2. **Install Dependencies**:
-   Run the setup command to install all necessary Python dependencies.
+**Run automated login:**
+```bash
+python AutoBrightSpace.py run
+```
 
-   ```bash
-   python autobrightspace.py --setup
-   ```
+## Getting Your 2FA Secret Key
 
-3. **Configure User Credentials**:
-   Set up or update your username, password, and 2FA secret key.
+1. Visit the [Leiden University Account Service](https://account.services.universiteitleiden.nl/).
+2. Log in with your Leiden University credentials.
+3. Navigate to **Login required** > **Multi-Factor Authentication** > log in and authenticate again.
+4. Select **Enroll/Modify** under **TOTP Non-NetIQ Authenticator**.
+5. You will see **•••••••••••••••** displayed under a QR code. Click on the **👁️ (eye icon)** to reveal your secret key.
 
-   ```bash
-   python autobrightspace.py --configue
-   ```
+## Troubleshooting
 
-4. **Build an Executable** (Optional):
-   Create a standalone executable for your platform (Windows, macOS, or Linux).
+- **Credentials not working**: Make sure your username, password, and 2FA secret are correctly configured
+- **Browser not opening**: Ensure Chrome is installed and ChromeDriver can be downloaded
+- **2FA failing**: Verify your secret key is correct and try regenerating TOTP codes
+- **Building executable fails**: Ensure you have `pyinstaller` installed and configured correctly
+- **Shortcut not working**: Highly recommended to set a keyboard shortcut from system settings
 
-   ```bash
-   python autobrightspace.py --build
-   ```
+## Security Notes
 
-## Keyboard Shortcuts
-
-### For Linux Users:
-
-If you are using Linux, you can follow these additional setup steps:
-
-1. **Move AutoBrightspace to /opt**:
-
-   ```bash
-   sudo mv ~/Desktop/AutoULCN/AutoBrightspace/ /opt
-   ```
-
-   *(Replace `~/Desktop/AutoULCN` with the actual location if it was cloned somewhere else.)*
-
-2. **Make the executable file executable**:
-
-   ```bash
-   sudo chmod +x /opt/AutoBrightspace/dist/AutoBrightspace
-   ```
-
-3. **Create a symlink for easy access**:
-
-   ```bash
-   sudo ln -sf /opt/AutoBrightspace/dist/AutoBrightspace /usr/local/bin/autobrightspace
-   ```
-
-4. **Run AutoBrightspace**:
-
-   ```bash
-   autobrightspace
-   ```
-
-5. **Optional: Set up a shortcut (GNOME Users)**:
-
-   You can create a custom keyboard shortcut to quickly run AutoBrightspace. To do this, follow these steps:
-
-   - Open the GNOME control center:
-
-     ```bash
-     gnome-control-center keyboard
-     ```
-
-   - Scroll down to "Custom Shortcuts" and click "+" to add a new shortcut.
-   - Name it "AutoBrightspace".
-   - For the command, use:
-
-     ```bash
-     autobrightspace
-     ```
-
-   - Click "Set Shortcut", then press `Ctrl+Shift+\`.
-   - Click "Add" to save.
-
-   Now, pressing `Ctrl+Shift+\` will launch AutoBrightspace.
-
-## Available Commands
-
-- **--setup**: Install all necessary dependencies.
-
-   ```bash
-   python autobrightspace.py --setup
-   ```
-
-- **--configue**: Configure or update your username, password, and 2FA secret key.
-
-   ```bash
-   python autobrightspace.py --configue
-   ```
-
-- **--run**: Run the program to automatically log in to Brightspace.
-
-   ```bash
-   python autobrightspace.py --run
-   ```
-
-- **--build**: Build a standalone executable for your operating system.
-
-   ```bash
-   python autobrightspace.py --build
-   ```
-
-- **--help**: Display a list of available commands and their descriptions.
-
-   ```bash
-   python autobrightspace.py --help
-   ```
+- Credentials are stored locally in your user data directory
+- 2FA secret keys are stored securely on your device
+- No data is transmitted to external servers 
