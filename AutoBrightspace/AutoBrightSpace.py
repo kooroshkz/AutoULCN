@@ -6,6 +6,7 @@ import threading
 import datetime
 import appdirs
 import pyotp
+import argparse
 from configparser import ConfigParser
 from time import sleep
 
@@ -432,69 +433,6 @@ class AutoBrightspaceApp(QMainWindow):
         """
         self.setStyleSheet(style)
     
-    def set_light_theme(self):
-        """Set a light theme for the application"""
-        QApplication.setPalette(QApplication.style().standardPalette())
-        QApplication.setStyle("Fusion")
-        
-        # Set application-wide stylesheet
-        style = """
-        QMainWindow, QWidget {
-            background-color: #f0f0f0;
-            color: #202020;
-        }
-        QFrame {
-            border-radius: 5px;
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
-        }
-        QPushButton {
-            background-color: #1f538d;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 16px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: #14375e;
-        }
-        QPushButton:disabled {
-            background-color: #cccccc;
-            color: #888888;
-        }
-        QLineEdit, QTextEdit, QComboBox {
-            background-color: white;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-            padding: 5px;
-            color: #202020;
-        }
-        QComboBox {
-            padding: 5px;
-            background-color: #1f538d;
-            color: white;
-        }
-        QComboBox QAbstractItemView {
-            background-color: white;
-            color: #202020;
-            selection-background-color: #1f538d;
-            selection-color: white;
-        }
-        QProgressBar {
-            border: none;
-            border-radius: 4px;
-            background-color: #e0e0e0;
-            text-align: center;
-            color: #202020;
-        }
-        QProgressBar::chunk {
-            background-color: #1f538d;
-            border-radius: 4px;
-        }
-        """
-        self.setStyleSheet(style)
-    
     def create_ui(self):
         """Create the main user interface"""
         # Main layout
@@ -534,17 +472,11 @@ class AutoBrightspaceApp(QMainWindow):
         self.setup_btn.clicked.connect(lambda: self.switch_page(2))
         sidebar_layout.addWidget(self.setup_btn)
         
+        self.shortcuts_btn = SidebarButton("Shortcuts")
+        self.shortcuts_btn.clicked.connect(lambda: self.switch_page(3))
+        sidebar_layout.addWidget(self.shortcuts_btn)
+        
         sidebar_layout.addStretch()
-        
-        # Theme selector
-        theme_label = QLabel("Theme:")
-        theme_label.setStyleSheet("color: #e0e0e0;")
-        sidebar_layout.addWidget(theme_label)
-        
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Dark", "Light"])
-        self.theme_combo.currentIndexChanged.connect(self.change_theme)
-        sidebar_layout.addWidget(self.theme_combo)
         
         # Scale factor selector
         scale_label = QLabel("UI Scale:")
@@ -570,6 +502,7 @@ class AutoBrightspaceApp(QMainWindow):
         self.create_main_page()
         self.create_config_page()
         self.create_setup_page()
+        self.create_shortcuts_page()
         
         # Add to main layout
         main_layout.addWidget(sidebar_widget)
@@ -801,6 +734,333 @@ Note: Your credentials are stored locally on your device.
         
         self.stack.addWidget(page)
     
+    def create_shortcuts_page(self):
+        """Create the shortcuts page for keyboard shortcut setup"""
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(20)
+        
+        # Title
+        title_frame = QFrame()
+        title_layout = QVBoxLayout(title_frame)
+        
+        title_label = QLabel("Keyboard Shortcuts")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        title_layout.addWidget(title_label)
+        
+        subtitle_label = QLabel("Set up system-wide keyboard shortcuts to run AutoBrightSpace")
+        subtitle_label.setAlignment(Qt.AlignCenter)
+        title_layout.addWidget(subtitle_label)
+        
+        layout.addWidget(title_frame)
+        
+        # Current OS detection
+        current_os = platform.system().lower()
+        os_frame = QFrame()
+        os_layout = QVBoxLayout(os_frame)
+        
+        os_label = QLabel(f"Detected OS: {platform.system()}")
+        os_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        os_layout.addWidget(os_label)
+        
+        layout.addWidget(os_frame)
+        
+        # Shortcut configuration
+        shortcut_frame = QFrame()
+        shortcut_layout = QVBoxLayout(shortcut_frame)
+        
+        # Shortcut key combination input
+        shortcut_config_layout = QHBoxLayout()
+        
+        shortcut_label = QLabel("Shortcut Keys:")
+        self.shortcut_input = QLineEdit()
+        self.shortcut_input.setPlaceholderText("Ctrl+Shift+\\")
+        self.shortcut_input.setText("Ctrl+Shift+\\")
+        
+        shortcut_config_layout.addWidget(shortcut_label)
+        shortcut_config_layout.addWidget(self.shortcut_input)
+        shortcut_layout.addLayout(shortcut_config_layout)
+        
+        # Setup button
+        self.setup_shortcut_btn = QPushButton("Set Up Keyboard Shortcut")
+        self.setup_shortcut_btn.setFixedHeight(42)
+        self.setup_shortcut_btn.setStyleSheet("background-color: #28a745;")
+        self.setup_shortcut_btn.clicked.connect(self.setup_keyboard_shortcut)
+        shortcut_layout.addWidget(self.setup_shortcut_btn)
+        
+        # Status label
+        self.shortcut_status = QLabel("Click the button above to set up your keyboard shortcut")
+        shortcut_layout.addWidget(self.shortcut_status)
+        
+        layout.addWidget(shortcut_frame)
+        
+        # Instructions based on OS
+        instructions_frame = QFrame()
+        instructions_layout = QVBoxLayout(instructions_frame)
+        
+        instructions_title = QLabel("Instructions")
+        instructions_title.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        instructions_layout.addWidget(instructions_title)
+        
+        if current_os == "linux":
+            instructions_text = QLabel(r"""
+<b>Linux (GNOME/KDE) Instructions:</b><br><br>
+
+<b>Manual Setup (if automatic fails):</b><br>
+1. Open Settings → Keyboard → Custom Shortcuts<br>
+2. Click "+" to add a new shortcut<br>
+3. Name: "AutoBrightSpace Quick Login"<br>
+4. Command: <code>python /full/path/to/AutoBrightSpace.py run</code><br>
+5. Set shortcut to: Ctrl+Shift+\<br><br>
+
+<b>Alternative for different desktop environments:</b><br>
+• <b>KDE:</b> System Settings → Shortcuts → Custom Shortcuts<br>
+• <b>XFCE:</b> Settings → Keyboard → Application Shortcuts<br>
+• <b>Command line:</b> Use tools like <code>xbindkeys</code> or <code>sxhkd</code>
+            """)
+        elif current_os == "darwin":  # macOS
+            instructions_text = QLabel(r"""
+<b>macOS Instructions:</b><br><br>
+
+<b>Automatic Setup:</b><br>
+• Click "Set Up Keyboard Shortcut" above<br>
+• Follow the prompts to set up the shortcut<br><br>
+
+<b>Manual Setup:</b><br>
+1. Open System Preferences → Keyboard → Shortcuts<br>
+2. Select "App Shortcuts" from the left sidebar<br>
+3. Click "+" to add a new shortcut<br>
+4. Application: "All Applications"<br>
+5. Menu Title: Leave blank<br>
+6. Keyboard Shortcut: Cmd+Shift+\<br><br>
+
+<b>Alternative using Automator:</b><br>
+1. Open Automator → New → Quick Action<br>
+2. Add "Run Shell Script" action<br>
+3. Shell: /bin/bash<br>
+4. Script: <code>cd /path/to/AutoBrightSpace && python AutoBrightSpace.py run</code><br>
+5. Save as "AutoBrightSpace Quick Login"<br>
+6. Assign keyboard shortcut in System Preferences → Keyboard → Shortcuts → Services
+            """)
+        else:  # Windows
+            instructions_text = QLabel(r"""
+<b>Windows Instructions:</b><br><br>
+
+<b>Automatic Setup:</b><br>
+• Click "Set Up Keyboard Shortcut" above<br>
+• A batch file will be created and shortcut instructions provided<br><br>
+
+<b>Manual Setup using Task Scheduler:</b><br>
+1. Open Task Scheduler (search in Start menu)<br>
+2. Create Basic Task → Name: "AutoBrightSpace Hotkey"<br>
+3. Trigger: "When I log on"<br>
+4. Action: "Start a program"<br>
+5. Program: <code>python</code><br>
+6. Arguments: <code>AutoBrightSpace.py run</code><br>
+7. Start in: <code>/path/to/AutoBrightSpace/</code><br><br>
+
+<b>Alternative using AutoHotkey:</b><br>
+1. Install AutoHotkey from autohotkey.com<br>
+2. Create a .ahk script with:<br>
+<code>^+\\::Run, python "C:\\path\\to\\AutoBrightSpace.py" run, C:\\path\\to\\</code><br>
+3. Run the script or add to startup
+            """)
+        
+        instructions_text.setWordWrap(True)
+        instructions_text.setTextFormat(Qt.RichText)
+        instructions_layout.addWidget(instructions_text)
+        
+        layout.addWidget(instructions_frame, 1)
+        
+        layout.addStretch()
+        
+        self.stack.addWidget(page)
+    
+    def setup_keyboard_shortcut(self):
+        """Set up keyboard shortcut based on the operating system"""
+        current_os = platform.system().lower()
+        shortcut_keys = self.shortcut_input.text().strip()
+        
+        if not shortcut_keys:
+            shortcut_keys = "Ctrl+Shift+\\"
+        
+        self.shortcut_status.setText("Setting up keyboard shortcut...")
+        
+        try:
+            if current_os == "linux":
+                self.setup_linux_shortcut(shortcut_keys)
+            elif current_os == "darwin":
+                self.setup_macos_shortcut(shortcut_keys)
+            elif current_os == "windows":
+                self.setup_windows_shortcut(shortcut_keys)
+            else:
+                self.shortcut_status.setText("❌ Unsupported operating system")
+        except Exception as e:
+            self.shortcut_status.setText(f"❌ Error setting up shortcut: {str(e)}")
+            self.log_message(f"Shortcut setup error: {str(e)}")
+    
+    def setup_linux_shortcut(self, shortcut_keys):
+        """Set up keyboard shortcut on Linux"""
+        script_path = os.path.abspath(__file__)
+        command = f"python {script_path} run"
+        
+        try:
+            # Try GNOME first
+            gsettings_result = subprocess.run([
+                "gsettings", "set", "org.gnome.settings-daemon.plugins.media-keys",
+                "custom-keybindings",
+                "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/autobrightspace/']"
+            ], capture_output=True, text=True)
+            
+            if gsettings_result.returncode == 0:
+                # Set the shortcut details
+                subprocess.run([
+                    "gsettings", "set",
+                    "org.gnome.settings-daemon.plugins.media-keys.custom-keybindings:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/autobrightspace/",
+                    "name", "AutoBrightSpace Quick Login"
+                ])
+                
+                subprocess.run([
+                    "gsettings", "set",
+                    "org.gnome.settings-daemon.plugins.media-keys.custom-keybindings:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/autobrightspace/",
+                    "command", command
+                ])
+                
+                # Convert shortcut format for GNOME
+                gnome_shortcut = shortcut_keys.replace("Ctrl", "<Primary>").replace("Shift", "<Shift>").replace("\\", "backslash")
+                subprocess.run([
+                    "gsettings", "set",
+                    "org.gnome.settings-daemon.plugins.media-keys.custom-keybindings:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/autobrightspace/",
+                    "binding", gnome_shortcut
+                ])
+                
+                self.shortcut_status.setText(f"✅ Keyboard shortcut set up successfully! Press {shortcut_keys} to run AutoBrightSpace")
+                self.log_message(f"Linux keyboard shortcut configured: {shortcut_keys}")
+            else:
+                raise Exception("GNOME settings not available")
+                
+        except Exception as e:
+            # Fallback: provide manual instructions
+            self.shortcut_status.setText(f"""
+❌ Automatic setup failed. Please set up manually:
+1. Open Settings → Keyboard → Custom Shortcuts
+2. Add new shortcut:
+   • Name: AutoBrightSpace Quick Login
+   • Command: {command}
+   • Shortcut: {shortcut_keys}
+            """)
+            self.log_message(f"Linux shortcut auto-setup failed: {str(e)}")
+    
+    def setup_macos_shortcut(self, shortcut_keys):
+        """Set up keyboard shortcut on macOS"""
+        script_path = os.path.abspath(__file__)
+        
+        # Create an AppleScript that can be saved as an app
+        applescript_content = f'''
+tell application "Terminal"
+    do script "cd '{os.path.dirname(script_path)}' && python '{os.path.basename(script_path)}' run"
+end tell
+'''
+        
+        # Save AppleScript
+        applescript_path = os.path.join(os.path.dirname(script_path), "AutoBrightSpace_Shortcut.scpt")
+        
+        try:
+            with open(applescript_path, 'w') as f:
+                f.write(applescript_content)
+            
+            # Compile the AppleScript
+            subprocess.run(["osacompile", "-o", applescript_path.replace('.scpt', '.app'), applescript_path])
+            
+            self.shortcut_status.setText(f"""
+✅ Shortcut app created! To complete setup:
+1. Open System Preferences → Keyboard → Shortcuts → Services
+2. Find "AutoBrightSpace_Shortcut" in the list
+3. Assign keyboard shortcut: {shortcut_keys.replace('Ctrl', 'Cmd')}
+
+Or use the created app: AutoBrightSpace_Shortcut.app
+            """)
+            self.log_message(f"macOS shortcut app created at: {applescript_path.replace('.scpt', '.app')}")
+            
+        except Exception as e:
+            self.shortcut_status.setText(f"""
+❌ Automatic setup failed. Please set up manually:
+1. Open Automator → New → Quick Action
+2. Add "Run Shell Script" action
+3. Script: cd {os.path.dirname(script_path)} && python {script_path} run
+4. Save and assign shortcut in System Preferences
+            """)
+            self.log_message(f"macOS shortcut setup failed: {str(e)}")
+    
+    def setup_windows_shortcut(self, shortcut_keys):
+        """Set up keyboard shortcut on Windows"""
+        script_path = os.path.abspath(__file__)
+        
+        # Create a batch file for the shortcut
+        batch_content = f'''@echo off
+cd /d "{os.path.dirname(script_path)}"
+python "{script_path}" run
+pause
+'''
+        
+        batch_path = os.path.join(os.path.dirname(script_path), "AutoBrightSpace_Shortcut.bat")
+        
+        try:
+            with open(batch_path, 'w') as f:
+                f.write(batch_content)
+            
+            # Create a PowerShell script for setting up the hotkey
+            ps_script = f'''
+Add-Type -TypeDefinition @"
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+public class GlobalHotkey
+{{
+    [DllImport("user32.dll")]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
+    [DllImport("user32.dll")]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    
+    public static void RegisterAutobrightspaceHotkey()
+    {{
+        // This would require a more complex implementation
+        Console.WriteLine("Hotkey registration would require a running application");
+    }}
+}}
+"@
+'''
+            
+            self.shortcut_status.setText(f"""
+✅ Batch file created! To complete setup:
+
+Option 1 - Using AutoHotkey (Recommended):
+1. Install AutoHotkey from autohotkey.com
+2. Create a .ahk file with this content:
+   ^+\\::Run, "{batch_path}"
+3. Run the .ahk script
+
+Option 2 - Manual shortcut:
+1. Right-click on AutoBrightSpace_Shortcut.bat
+2. Create shortcut → Properties
+3. Set shortcut key: {shortcut_keys}
+
+Batch file created at: {batch_path}
+            """)
+            self.log_message(f"Windows batch file created: {batch_path}")
+            
+        except Exception as e:
+            self.shortcut_status.setText(f"""
+❌ Setup failed. Please create manually:
+1. Create a .bat file with: python "{script_path}" run
+2. Create a shortcut to the .bat file
+3. Set shortcut key in Properties: {shortcut_keys}
+            """)
+            self.log_message(f"Windows shortcut setup failed: {str(e)}")
+    
     def switch_page(self, index):
         """Switch between pages and update button states"""
         self.stack.setCurrentIndex(index)
@@ -809,13 +1069,7 @@ Note: Your credentials are stored locally on your device.
         self.main_btn.setChecked(index == 0)
         self.config_btn.setChecked(index == 1)
         self.setup_btn.setChecked(index == 2)
-    
-    def change_theme(self, index):
-        """Change application theme"""
-        if index == 0:  # Dark theme
-            self.set_dark_theme()
-        else:  # Light theme
-            self.set_light_theme()
+        self.shortcuts_btn.setChecked(index == 3)
     
     def change_scale(self, index):
         """Change UI scaling"""
@@ -948,11 +1202,225 @@ Note: Your credentials are stored locally on your device.
         # Call parent class close event
         super().closeEvent(event)
 
+def load_credentials_cli():
+    """Load credentials from config file for CLI use"""
+    config = ConfigParser()
+    if os.path.exists(CONFIG_PATH):
+        config.read(CONFIG_PATH)
+        username = config.get('Credentials', 'username', fallback='')
+        password = config.get('Credentials', 'password', fallback='')
+        secret_key = config.get('Credentials', 'secret_key', fallback='')
+        return username, password, secret_key
+    return '', '', ''
+
+def save_credentials_cli(username, password, secret_key):
+    """Save credentials to config file for CLI use"""
+    config = ConfigParser()
+    config['Credentials'] = {
+        'username': username,
+        'password': password,
+        'secret_key': secret_key
+    }
+    
+    if not os.path.exists(CONFIG_DIR):
+        os.makedirs(CONFIG_DIR)
+        
+    with open(CONFIG_PATH, 'w') as configfile:
+        config.write(configfile)
+    
+    print("✓ Credentials saved successfully!")
+
+def cli_config():
+    """CLI configuration mode"""
+    print("=== AutoBrightSpace Configuration ===")
+    print()
+    
+    # Load existing credentials
+    username, password, secret_key = load_credentials_cli()
+    
+    print("Current credentials:")
+    print(f"Username: {username if username else '(not set)'}")
+    print(f"Password: {'*' * len(password) if password else '(not set)'}")
+    print(f"2FA Secret: {'*' * len(secret_key) if secret_key else '(not set)'}")
+    print()
+    
+    # Get new credentials
+    new_username = input(f"Enter username [{username}]: ").strip()
+    if not new_username:
+        new_username = username
+    
+    import getpass
+    new_password = getpass.getpass(f"Enter password [{'current' if password else 'not set'}]: ").strip()
+    if not new_password:
+        new_password = password
+    
+    new_secret_key = getpass.getpass(f"Enter 2FA secret key [{'current' if secret_key else 'not set'}]: ").strip()
+    if not new_secret_key:
+        new_secret_key = secret_key
+    
+    if new_username and new_password and new_secret_key:
+        save_credentials_cli(new_username, new_password, new_secret_key)
+        print()
+        print("How to get your 2FA Secret Key:")
+        print("1. Visit the Leiden University Account Service")
+        print("2. Log in with your Leiden University credentials")
+        print("3. Navigate to Multi-Factor Authentication")
+        print("4. Select Enroll/Modify under TOTP Non-NetIQ Authenticator")
+        print("5. Click on the 👁️ (eye icon) to reveal your secret key")
+    else:
+        print("✗ Configuration incomplete. Please provide all credentials.")
+
+def cli_run():
+    """CLI run mode - automated login without GUI"""
+    print("=== AutoBrightSpace CLI Login ===")
+    
+    # Load credentials
+    username, password, secret_key = load_credentials_cli()
+    
+    if not all([username, password, secret_key]):
+        print("✗ Credentials not configured. Please run:")
+        print("python AutoBrightSpace.py config")
+        return False
+    
+    print(f"Starting automated login for user: {username}")
+    
+    try:
+        # Initialize Chrome driver
+        print("Initializing browser...")
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+        from webdriver_manager.chrome import ChromeDriverManager
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service)
+        
+        print("Navigating to Brightspace...")
+        driver.get("https://brightspace.universiteitleiden.nl")
+        
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        current_url = driver.current_url
+        
+        # Handle SURFconext university selection page
+        if current_url.startswith("https://engine.surfconext.nl/authentication/idp"):
+            print("Selecting Leiden University...")
+            try:
+                leiden_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, 
+                        "//div[@data-entityid='https://login.uaccess.leidenuniv.nl/nidp/saml2/metadata']"))
+                )
+                leiden_button.click()
+                print("✓ Selected Leiden University")
+                
+                # Wait for page to change
+                WebDriverWait(driver, 10).until(lambda d: d.current_url != current_url)
+                current_url = driver.current_url
+                
+            except Exception as e:
+                print(f"Failed to select Leiden University: {str(e)}")
+                try:
+                    submit_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.XPATH, 
+                            "//form[@action='https://engine.surfconext.nl/authentication/idp/process-wayf']//button[@type='submit']"))
+                    )
+                    submit_button.click()
+                    print("✓ Used fallback method")
+                    WebDriverWait(driver, 10).until(lambda d: d.current_url != current_url)
+                    current_url = driver.current_url
+                except Exception as e2:
+                    print(f"✗ Both methods failed: {str(e2)}")
+                    return False
+        
+        if current_url.startswith("https://login.uaccess.leidenuniv.nl"):
+            print("Entering credentials...")
+            
+            username_input = driver.find_element(By.NAME, "Ecom_User_ID")
+            password_input = driver.find_element(By.NAME, "Ecom_Password")
+            
+            username_input.send_keys(username)
+            password_input.send_keys(password)
+            
+            login_button = driver.find_element(By.ID, "loginbtn")
+            login_button.click()
+            
+            WebDriverWait(driver, 10).until(lambda d: d.current_url != current_url)
+            redirected_url = driver.current_url
+            
+            if redirected_url.startswith("https://mfa.services.universiteitleiden.nl"):
+                print("Processing 2FA...")
+                
+                next_button = driver.find_element(By.ID, "loginButton2")
+                next_button.click()
+                
+                totp = pyotp.TOTP(secret_key)
+                totp_code = totp.now()
+                
+                print(f"Generated TOTP code: {totp_code}")
+                
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "nffc")))
+                code_input = driver.find_element(By.ID, "nffc")
+                code_input.send_keys(totp_code)
+                
+                next_button_after_code = driver.find_element(By.ID, "loginButton2")
+                next_button_after_code.click()
+                
+                print("✓ Login successful! Browser is ready to use.")
+                print("Close the browser window when you're done.")
+                
+                # Keep the script running until browser is closed
+                try:
+                    while driver.current_window_handle:
+                        sleep(1)
+                except Exception:
+                    pass
+                
+            else:
+                print("✗ Login failed - check credentials")
+                return False
+                
+        elif current_url.startswith("https://brightspace.universiteitleiden.nl"):
+            print("✓ Already logged in!")
+            print("Browser is ready to use. Close the window when done.")
+            
+            # Keep running until browser is closed
+            try:
+                while driver.current_window_handle:
+                    sleep(1)
+            except Exception:
+                pass
+        else:
+            print(f"? Unknown page detected: {current_url}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ Error during login: {str(e)}")
+        return False
+
 def main():
-    app = QApplication(sys.argv)
-    window = AutoBrightspaceApp()
-    window.show()
-    sys.exit(app.exec_())
+    parser = argparse.ArgumentParser(description='AutoBrightSpace - University Login Automation')
+    parser.add_argument('mode', nargs='?', choices=['run', 'config'], 
+                       help='CLI mode: "run" for automated login, "config" to set credentials')
+    
+    args = parser.parse_args()
+    
+    if args.mode == 'run':
+        # CLI run mode
+        success = cli_run()
+        sys.exit(0 if success else 1)
+    elif args.mode == 'config':
+        # CLI config mode
+        cli_config()
+        sys.exit(0)
+    else:
+        # GUI mode (default)
+        app = QApplication(sys.argv)
+        window = AutoBrightspaceApp()
+        window.show()
+        sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
