@@ -7,8 +7,14 @@ import datetime
 import appdirs
 import pyotp
 import argparse
+import base64
+import hashlib
 from configparser import ConfigParser
 from time import sleep
+
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                            QLabel, QPushButton, QLineEdit, QTabWidget, QFrame, QTextEdit, 
@@ -35,10 +41,68 @@ ICON_PATH_MAC = os.path.join(os.getcwd(), 'icon', 'AutoBrightspace.icns')
 ICON_PATH_LINUX = os.path.join(os.getcwd(), 'icon', 'AutoBrightspace.png')
 
 # List of dependencies to check and install
-REQUIRED_MODULES = ['pyotp', 'selenium', 'appdirs', 'pyinstaller', 'webdriver-manager', 'pillow', 'PyQt5']
+REQUIRED_MODULES = ['pyotp', 'selenium', 'appdirs', 'pyinstaller', 'webdriver-manager', 'pillow', 'PyQt5', 'cryptography']
 
 if not os.path.exists(CONFIG_DIR):
     os.makedirs(CONFIG_DIR)
+
+# Encryption helper functions
+def get_encryption_key():
+    """Generate or retrieve encryption key based on machine-specific data"""
+    # Create a unique key based on machine characteristics
+    machine_id = f"{platform.node()}{platform.machine()}{platform.processor()}"
+    # Use a fixed salt for consistency across runs
+    salt = b'AutoBrightspace_Salt_2024'
+    
+    # Generate key using PBKDF2
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(machine_id.encode()))
+    return key
+
+def encrypt_data(data):
+    """Encrypt data using machine-specific key"""
+    if not data:
+        return ""
+    
+    try:
+        key = get_encryption_key()
+        fernet = Fernet(key)
+        encrypted_data = fernet.encrypt(data.encode())
+        return base64.urlsafe_b64encode(encrypted_data).decode()
+    except Exception as e:
+        print(f"Encryption error: {e}")
+        return data  # Return original data if encryption fails
+
+def decrypt_data(encrypted_data):
+    """Decrypt data using machine-specific key"""
+    if not encrypted_data:
+        return ""
+    
+    try:
+        key = get_encryption_key()
+        fernet = Fernet(key)
+        decoded_data = base64.urlsafe_b64decode(encrypted_data.encode())
+        decrypted_data = fernet.decrypt(decoded_data)
+        return decrypted_data.decode()
+    except Exception as e:
+        # If decryption fails, assume it's plain text (backward compatibility)
+        return encrypted_data
+
+def is_encrypted(data):
+    """Check if data appears to be encrypted (base64 encoded)"""
+    if not data:
+        return False
+    try:
+        # Try to decode as base64, if successful and looks like encrypted data, it's encrypted
+        decoded = base64.urlsafe_b64decode(data.encode())
+        return len(decoded) > 20  # Encrypted data should be longer than plain text
+    except:
+        return False
 
 class LoginWorker(QThread):
     """Worker thread for handling login process"""
@@ -55,15 +119,87 @@ class LoginWorker(QThread):
         self.driver = None
         self.is_running = True
         
+    def _create_chrome_driver(self):
+        """Create Chrome driver with robust error handling and multiple fallback methods"""
+        import glob
+        
+        # Method 1: Try webdriver-manager
+        try:
+            self.log_message.emit("Attempting to download ChromeDriver...")
+            service = Service(ChromeDriverManager().install())
+            
+            # Verify the downloaded driver is actually executable
+            driver_path = service.path
+            if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                self.log_message.emit(f"Using ChromeDriver: {driver_path}")
+                return webdriver.Chrome(service=service)
+            else:
+                self.log_message.emit("Downloaded ChromeDriver is not executable, trying alternatives...")
+        except Exception as e:
+            self.log_message.emit(f"webdriver-manager failed: {str(e)}")
+        
+        # Method 2: Try to find and fix ChromeDriver in .wdm cache
+        try:
+            wdm_path = os.path.expanduser("~/.wdm/drivers/chromedriver/linux64/*/")
+            chrome_dirs = glob.glob(wdm_path)
+            
+            for chrome_dir in chrome_dirs:
+                # Look for the actual chromedriver executable (not the THIRD_PARTY_NOTICES file)
+                potential_drivers = [
+                    os.path.join(chrome_dir, "chromedriver-linux64", "chromedriver"),
+                    os.path.join(chrome_dir, "chromedriver"),
+                    os.path.join(chrome_dir, "chromedriver-linux64", "chromedriver-linux64")
+                ]
+                
+                for driver_path in potential_drivers:
+                    if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                        self.log_message.emit(f"Found working ChromeDriver: {driver_path}")
+                        service = Service(driver_path)
+                        return webdriver.Chrome(service=service)
+                    elif os.path.exists(driver_path):
+                        # Make it executable if it exists but isn't executable
+                        try:
+                            os.chmod(driver_path, 0o755)
+                            if os.access(driver_path, os.X_OK):
+                                self.log_message.emit(f"Fixed and using ChromeDriver: {driver_path}")
+                                service = Service(driver_path)
+                                return webdriver.Chrome(service=service)
+                        except Exception as e:
+                            self.log_message.emit(f"Could not fix permissions: {e}")
+        except Exception as e:
+            self.log_message.emit(f"Cache search failed: {str(e)}")
+        
+        # Method 3: Try system chromedriver
+        try:
+            result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
+            if result.returncode == 0:
+                system_driver = result.stdout.strip()
+                self.log_message.emit(f"Using system ChromeDriver: {system_driver}")
+                service = Service(system_driver)
+                return webdriver.Chrome(service=service)
+        except Exception as e:
+            self.log_message.emit(f"System chromedriver check failed: {str(e)}")
+        
+        # Method 4: Try without service (let Chrome find its own driver)
+        try:
+            self.log_message.emit("Trying to use Chrome's built-in driver...")
+            return webdriver.Chrome()
+        except Exception as e:
+            self.log_message.emit(f"Built-in driver failed: {str(e)}")
+        
+        return None
+        
     def run(self):
         try:
             self.status_update.emit("Initializing browser...", "yellow")
             self.log_message.emit("Starting automated login process")
             
-            # Initialize Chrome driver
+            # Initialize Chrome driver with robust error handling
             self.progress_update.emit(0.3)
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service)
+            self.driver = self._create_chrome_driver()
+            if not self.driver:
+                self.error_occurred.emit("Failed to initialize Chrome browser")
+                return
             
             self.status_update.emit("Navigating to login page...", "yellow")
             self.log_message.emit("Opening Brightspace login page")
@@ -222,40 +358,351 @@ class InstallWorker(QThread):
         self.log_message.emit("All dependencies processed")
 
 class BuildWorker(QThread):
-    """Worker thread for building executable"""
+    """Worker thread for building executable using enhanced build tool"""
     status_update = pyqtSignal(str)
     log_message = pyqtSignal(str)
+    build_progress = pyqtSignal(str, str)  # (stage, message)
     
-    def run(self):
-        self.status_update.emit("Building executable...")
-        self.log_message.emit("Starting executable build...")
+    def __init__(self):
+        super().__init__()
+        self.build_tool = None
         
-        current_os = platform.system().lower()
+    def run(self):
+        self.status_update.emit("Initializing build process...")
+        self.log_message.emit("Starting enhanced executable build...")
+        
         try:
-            if current_os == "windows" and os.path.exists(ICON_PATH_WINDOWS):
-                cmd = ["pyinstaller", "--onefile", "--windowed", "--icon", ICON_PATH_WINDOWS, 
-                      __file__, "--name", APP_NAME]
-            elif current_os == "darwin" and os.path.exists(ICON_PATH_MAC):
-                cmd = ["pyinstaller", "--onefile", "--windowed", "--icon", ICON_PATH_MAC, 
-                      __file__, "--name", APP_NAME]
-            elif current_os == "linux" and os.path.exists(ICON_PATH_LINUX):
-                cmd = ["pyinstaller", "--onefile", "--windowed", "--icon", ICON_PATH_LINUX, 
-                      __file__, "--name", APP_NAME]
-            else:
-                cmd = ["pyinstaller", "--onefile", "--windowed", __file__, "--name", APP_NAME]
-                self.log_message.emit(f"Note: Icon not found for {current_os}, using default")
+            # Import the build tool
+            from pathlib import Path
+            import shutil
             
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                self.log_message.emit("✓ Executable built successfully")
-                self.status_update.emit("Build completed successfully")
-            else:
-                self.log_message.emit(f"✗ Build failed: {result.stderr}")
-                self.status_update.emit("Build failed")
+            # Create build tool instance
+            source_file = Path(__file__).resolve()
+            self.build_tool = self.create_build_tool_class(source_file)
+            
+            current_os = platform.system().lower()
+            self.log_message.emit(f"Building for platform: {current_os}")
+            
+            # Check dependencies
+            self.build_progress.emit("dependencies", "Checking build dependencies...")
+            if not self.build_tool.check_dependencies():
+                self.status_update.emit("Dependency check failed")
+                self.log_message.emit("✗ Missing required dependencies for building")
+                return
+            
+            self.log_message.emit("✓ All build dependencies available")
+            
+            # Clean previous builds
+            self.build_progress.emit("cleaning", "Cleaning previous builds...")
+            self.build_tool.clean_build_dirs()
+            self.log_message.emit("✓ Cleaned previous build files")
+            
+            # Create icons if needed
+            self.build_progress.emit("icons", "Preparing application icons...")
+            self.build_tool.create_missing_icons()
+            
+            # Build executable
+            self.build_progress.emit("building", "Building executable with PyInstaller...")
+            self.status_update.emit("Building executable...")
+            
+            if self.build_executable_with_feedback():
+                # Create launcher script
+                self.build_progress.emit("post-processing", "Creating launcher scripts...")
+                launcher = self.build_tool.create_launcher_script()
+                if launcher:
+                    self.log_message.emit(f"✓ Created launcher: {launcher.name}")
                 
-        except FileNotFoundError:
-            self.log_message.emit("✗ PyInstaller not found. Please install it first.")
-            self.status_update.emit("PyInstaller not found")
+                # Get build information
+                build_info = self.build_tool.get_build_info()
+                if build_info:
+                    size_mb = build_info["size"] / (1024 * 1024)
+                    self.log_message.emit(f"✓ Built: {build_info['path'].name}")
+                    self.log_message.emit(f"✓ Size: {size_mb:.1f} MB")
+                    self.log_message.emit(f"✓ Type: {build_info['type']}")
+                    
+                    # Provide usage instructions
+                    self.log_usage_instructions(build_info, current_os)
+                    
+                    self.status_update.emit("Build completed successfully!")
+                    self.log_message.emit("🎉 Executable build completed successfully!")
+                else:
+                    self.status_update.emit("Build completed but file not found")
+                    self.log_message.emit("⚠ Build completed but output file not located")
+            else:
+                self.status_update.emit("Build failed")
+                self.log_message.emit("✗ Executable build failed")
+                
+        except Exception as e:
+            self.status_update.emit(f"Build error: {str(e)}")
+            self.log_message.emit(f"✗ Build failed with error: {str(e)}")
+    
+    def create_build_tool_class(self, source_file):
+        """Create build tool class inline to avoid import issues"""
+        from pathlib import Path
+        import shutil
+        
+        class EnhancedBuildTool:
+            def __init__(self, source_file):
+                self.source_file = Path(source_file).resolve()
+                self.project_dir = self.source_file.parent
+                self.app_name = "AutoBrightspace"
+                self.current_os = platform.system().lower()
+                
+                self.build_dir = self.project_dir / "build"
+                self.dist_dir = self.project_dir / "dist"
+                self.icon_dir = self.project_dir / "icon"
+                
+                self.icon_paths = {
+                    "windows": self.icon_dir / "AutoBrightspace.ico",
+                    "darwin": self.icon_dir / "AutoBrightspace.icns", 
+                    "linux": self.icon_dir / "AutoBrightspace.png"
+                }
+                
+                self.executable_names = {
+                    "windows": f"{self.app_name}.exe",
+                    "darwin": self.app_name,
+                    "linux": self.app_name
+                }
+            
+            def check_dependencies(self):
+                """Check PyInstaller availability"""
+                try:
+                    import PyInstaller
+                    return True
+                except ImportError:
+                    return False
+            
+            def clean_build_dirs(self):
+                """Clean build directories"""
+                import shutil
+                for dir_path in [self.build_dir, self.dist_dir]:
+                    if dir_path.exists():
+                        shutil.rmtree(dir_path)
+                
+                # Clean spec files
+                for spec_file in self.project_dir.glob("*.spec"):
+                    spec_file.unlink()
+            
+            def create_missing_icons(self):
+                """Create missing icons from existing ones"""
+                try:
+                    from PIL import Image
+                    
+                    existing_icons = {}
+                    for platform, icon_path in self.icon_paths.items():
+                        if icon_path.exists():
+                            existing_icons[platform] = icon_path
+                    
+                    if not existing_icons:
+                        return self.create_default_icon()
+                    
+                    # Create PNG for Linux if missing
+                    if "linux" not in existing_icons and ("windows" in existing_icons or "darwin" in existing_icons):
+                        source_icon = existing_icons.get("windows") or existing_icons.get("darwin")
+                        try:
+                            img = Image.open(source_icon)
+                            if img.mode != 'RGBA':
+                                img = img.convert('RGBA')
+                            img.save(self.icon_paths["linux"], "PNG")
+                            return True
+                        except:
+                            pass
+                    
+                    return True
+                except:
+                    return False
+            
+            def create_default_icon(self):
+                """Create simple default icon"""
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    
+                    self.icon_dir.mkdir(exist_ok=True)
+                    img = Image.new('RGBA', (256, 256), (31, 83, 141, 255))
+                    draw = ImageDraw.Draw(img)
+                    
+                    try:
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
+                    except:
+                        font = ImageFont.load_default()
+                    
+                    text = "AB"
+                    bbox = draw.textbbox((0, 0), text, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                    
+                    x = (256 - text_width) // 2
+                    y = (256 - text_height) // 2
+                    
+                    draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
+                    
+                    # Save icons
+                    img.save(self.icon_paths["linux"], "PNG")
+                    img.save(self.icon_paths["windows"], "ICO", sizes=[(256, 256), (128, 128), (64, 64), (32, 32), (16, 16)])
+                    
+                    try:
+                        img.save(self.icon_paths["darwin"], "ICNS")
+                    except:
+                        import shutil
+                        shutil.copy2(self.icon_paths["linux"], self.icon_paths["darwin"].with_suffix(".png"))
+                    
+                    return True
+                except:
+                    return False
+            
+            def get_build_info(self):
+                """Get build information"""
+                exe_name = self.executable_names[self.current_os]
+                
+                if self.current_os == "darwin":
+                    app_path = self.dist_dir / f"{self.app_name}.app"
+                    if app_path.exists():
+                        size = sum(f.stat().st_size for f in app_path.rglob('*') if f.is_file())
+                        return {"path": app_path, "size": size, "type": "macOS App Bundle"}
+                
+                exe_path = self.dist_dir / exe_name
+                if exe_path.exists():
+                    return {
+                        "path": exe_path,
+                        "size": exe_path.stat().st_size,
+                        "type": f"{self.current_os.title()} Executable"
+                    }
+                return None
+            
+            def create_launcher_script(self):
+                """Create launcher script"""
+                if self.current_os == "windows":
+                    content = f'''@echo off
+cd /d "%~dp0"
+"{self.executable_names["windows"]}" run
+if errorlevel 1 pause
+'''
+                    launcher_path = self.dist_dir / "AutoBrightspace_QuickLogin.bat"
+                else:
+                    content = f'''#!/bin/bash
+DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+cd "$DIR"
+./{self.executable_names[self.current_os]} run
+'''
+                    launcher_path = self.dist_dir / "AutoBrightspace_QuickLogin.sh"
+                
+                try:
+                    launcher_path.write_text(content)
+                    if self.current_os != "windows":
+                        launcher_path.chmod(0o755)
+                    return launcher_path
+                except:
+                    return None
+        
+        return EnhancedBuildTool(source_file)
+    
+    def build_executable_with_feedback(self):
+        """Build executable with detailed feedback"""
+        from pathlib import Path
+        
+        try:
+            current_icon = self.build_tool.icon_paths.get(self.build_tool.current_os)
+            icon_path = str(current_icon) if current_icon and current_icon.exists() else None
+            
+            # Enhanced PyInstaller command
+            cmd = [
+                sys.executable, "-m", "PyInstaller",
+                "--onefile",
+                "--windowed",
+                "--clean",
+                "--noconfirm",
+                "--name", self.build_tool.app_name,
+                "--distpath", str(self.build_tool.dist_dir),
+                "--workpath", str(self.build_tool.build_dir),
+                "--specpath", str(self.build_tool.project_dir)
+            ]
+            
+            # Add icon if available
+            if icon_path:
+                cmd.extend(["--icon", icon_path])
+                self.log_message.emit(f"✓ Using icon: {Path(icon_path).name}")
+            else:
+                self.log_message.emit("⚠ No icon available, building without icon")
+            
+            # Add hidden imports for better compatibility
+            hidden_imports = [
+                "PyQt5.QtCore", "PyQt5.QtGui", "PyQt5.QtWidgets",
+                "selenium", "selenium.webdriver", "selenium.webdriver.chrome",
+                "webdriver_manager", "webdriver_manager.chrome",
+                "pyotp", "cryptography", "cryptography.fernet", "appdirs"
+            ]
+            
+            for imp in hidden_imports:
+                cmd.extend(["--hidden-import", imp])
+            
+            # Exclude conflicting Qt packages and unnecessary modules
+            exclude_modules = [
+                "PySide2", "PySide6", "PyQt6",
+                "tkinter", "matplotlib", "numpy", "pandas", "scipy", 
+                "IPython", "jupyter", "notebook", "jupyterlab",
+                "sphinx", "babel", "pytest", "astroid"
+            ]
+            
+            for exc in exclude_modules:
+                cmd.extend(["--exclude-module", exc])
+            
+            # Add the source file
+            cmd.append(str(self.build_tool.source_file))
+            
+            # Run PyInstaller
+            self.log_message.emit("Running PyInstaller...")
+            result = subprocess.run(cmd, 
+                                  cwd=self.build_tool.project_dir,
+                                  capture_output=True, 
+                                  text=True)
+            
+            if result.returncode != 0:
+                self.log_message.emit(f"✗ PyInstaller stderr: {result.stderr}")
+                return False
+            
+            # Post-process for Unix systems
+            if self.build_tool.current_os in ["linux", "darwin"]:
+                exe_path = self.build_tool.dist_dir / self.build_tool.executable_names[self.build_tool.current_os]
+                if exe_path.exists():
+                    exe_path.chmod(0o755)
+                    self.log_message.emit("✓ Made executable file executable")
+            
+            return True
+            
+        except Exception as e:
+            self.log_message.emit(f"✗ Build process error: {str(e)}")
+            return False
+    
+    def log_usage_instructions(self, build_info, current_os):
+        """Log usage instructions for the built executable"""
+        self.log_message.emit("\n📋 USAGE INSTRUCTIONS:")
+        
+        exe_name = build_info["path"].name
+        
+        if current_os == "darwin" and exe_name.endswith('.app'):
+            self.log_message.emit(f"• Double-click: {exe_name}")
+            self.log_message.emit(f"• Terminal GUI: open {exe_name}")
+            self.log_message.emit(f"• Terminal CLI: {exe_name}/Contents/MacOS/AutoBrightspace run")
+        else:
+            if current_os == "windows":
+                self.log_message.emit(f"• Double-click: {exe_name}")
+                self.log_message.emit(f"• Command prompt: {exe_name}")
+                self.log_message.emit(f"• CLI login: {exe_name} run")
+                self.log_message.emit(f"• Configure: {exe_name} config")
+                self.log_message.emit("• Quick login: AutoBrightspace_QuickLogin.bat")
+            else:  # Linux
+                self.log_message.emit(f"• Double-click: {exe_name} (if file manager supports)")
+                self.log_message.emit(f"• Terminal GUI: ./{exe_name}")
+                self.log_message.emit(f"• CLI login: ./{exe_name} run")
+                self.log_message.emit(f"• Configure: ./{exe_name} config")
+                self.log_message.emit("• Quick login: ./AutoBrightspace_QuickLogin.sh")
+        
+        self.log_message.emit(f"\n📁 Files location: {build_info['path'].parent}")
+        
+        # Add note about the quick login functionality
+        self.log_message.emit("\n💡 QUICK LOGIN:")
+        self.log_message.emit("The launcher script provides the same functionality as")
+        self.log_message.emit("'python AutoBrightSpace.py run' - instant login without GUI!")
 
 class IconWorker(QThread):
     """Worker thread for icon conversion"""
@@ -1083,21 +1530,38 @@ Batch file created at: {batch_path}
                                    f"(Note: Would require application restart to take full effect)")
     
     def load_credentials(self):
-        """Load saved credentials"""
+        """Load saved credentials with decryption support"""
         config = ConfigParser()
         if os.path.exists(CONFIG_PATH):
             config.read(CONFIG_PATH)
-            self.username_input.setText(config.get('Credentials', 'username', fallback=''))
-            self.password_input.setText(config.get('Credentials', 'password', fallback=''))
-            self.secret_key_input.setText(config.get('Credentials', 'secret_key', fallback=''))
+            
+            # Load and decrypt credentials
+            username = config.get('Credentials', 'username', fallback='')
+            password = config.get('Credentials', 'password', fallback='')
+            secret_key = config.get('Credentials', 'secret_key', fallback='')
+            
+            # Decrypt if data appears to be encrypted
+            username = decrypt_data(username) if username else ''
+            password = decrypt_data(password) if password else ''
+            secret_key = decrypt_data(secret_key) if secret_key else ''
+            
+            self.username_input.setText(username)
+            self.password_input.setText(password)
+            self.secret_key_input.setText(secret_key)
     
     def save_credentials(self):
-        """Save credentials to config file"""
+        """Save credentials to config file with encryption"""
         config = ConfigParser()
+        
+        # Encrypt sensitive data before saving
+        username = self.username_input.text()
+        password = encrypt_data(self.password_input.text())
+        secret_key = encrypt_data(self.secret_key_input.text())
+        
         config['Credentials'] = {
-            'username': self.username_input.text(),
-            'password': self.password_input.text(),
-            'secret_key': self.secret_key_input.text()
+            'username': username,  # Username can remain unencrypted for easier debugging
+            'password': password,
+            'secret_key': secret_key
         }
         
         if not os.path.exists(CONFIG_DIR):
@@ -1106,8 +1570,8 @@ Batch file created at: {batch_path}
         with open(CONFIG_PATH, 'w') as configfile:
             config.write(configfile)
         
-        QMessageBox.information(self, "Success", "Credentials saved successfully!")
-        self.log_message("Credentials saved to configuration file")
+        QMessageBox.information(self, "Success", "Credentials saved successfully with encryption!")
+        self.log_message("Credentials saved to configuration file (encrypted)")
     
     def start_login(self):
         """Start the login process"""
@@ -1203,23 +1667,34 @@ Batch file created at: {batch_path}
         super().closeEvent(event)
 
 def load_credentials_cli():
-    """Load credentials from config file for CLI use"""
+    """Load credentials from config file for CLI use with decryption support"""
     config = ConfigParser()
     if os.path.exists(CONFIG_PATH):
         config.read(CONFIG_PATH)
         username = config.get('Credentials', 'username', fallback='')
         password = config.get('Credentials', 'password', fallback='')
         secret_key = config.get('Credentials', 'secret_key', fallback='')
+        
+        # Decrypt if data appears to be encrypted
+        username = decrypt_data(username) if username else ''
+        password = decrypt_data(password) if password else ''
+        secret_key = decrypt_data(secret_key) if secret_key else ''
+        
         return username, password, secret_key
     return '', '', ''
 
 def save_credentials_cli(username, password, secret_key):
-    """Save credentials to config file for CLI use"""
+    """Save credentials to config file for CLI use with encryption"""
     config = ConfigParser()
+    
+    # Encrypt sensitive data before saving
+    encrypted_password = encrypt_data(password)
+    encrypted_secret_key = encrypt_data(secret_key)
+    
     config['Credentials'] = {
-        'username': username,
-        'password': password,
-        'secret_key': secret_key
+        'username': username,  # Username can remain unencrypted for easier debugging
+        'password': encrypted_password,
+        'secret_key': encrypted_secret_key
     }
     
     if not os.path.exists(CONFIG_DIR):
@@ -1228,7 +1703,273 @@ def save_credentials_cli(username, password, secret_key):
     with open(CONFIG_PATH, 'w') as configfile:
         config.write(configfile)
     
-    print("✓ Credentials saved successfully!")
+    print("✓ Credentials saved successfully with encryption!")
+
+def cli_build():
+    """CLI build mode - build executable from command line"""
+    print("=== AutoBrightSpace CLI Build ===")
+    print("Building standalone executable...")
+    
+    try:
+        # Import build functionality
+        from pathlib import Path
+        import shutil
+        
+        # Initialize build tool
+        source_file = Path(__file__).resolve()
+        
+        # Simplified build tool for CLI
+        class CLIBuildTool:
+            def __init__(self, source_file):
+                self.source_file = source_file
+                self.project_dir = source_file.parent
+                self.app_name = "AutoBrightspace"
+                self.current_os = platform.system().lower()
+                
+                self.build_dir = self.project_dir / "build"
+                self.dist_dir = self.project_dir / "dist"
+                self.icon_dir = self.project_dir / "icon"
+                
+                self.executable_names = {
+                    "windows": f"{self.app_name}.exe",
+                    "darwin": self.app_name,
+                    "linux": self.app_name
+                }
+            
+            def clean_dirs(self):
+                for dir_path in [self.build_dir, self.dist_dir]:
+                    if dir_path.exists():
+                        shutil.rmtree(dir_path)
+                        print(f"✓ Cleaned {dir_path}")
+                
+                for spec_file in self.project_dir.glob("*.spec"):
+                    spec_file.unlink()
+                    print(f"✓ Cleaned {spec_file}")
+            
+            def create_icons(self):
+                """Create missing icons from existing ones or generate defaults"""
+                try:
+                    from PIL import Image
+                    
+                    # Check which icons we have
+                    existing_icons = {}
+                    for platform in ["windows", "darwin", "linux"]:
+                        icon_extensions = {"windows": ".ico", "darwin": ".icns", "linux": ".png"}
+                        icon_path = self.icon_dir / f"AutoBrightspace{icon_extensions[platform]}"
+                        if icon_path.exists():
+                            existing_icons[platform] = icon_path
+                            print(f"✓ Found existing {platform} icon: {icon_path.name}")
+                    
+                    # If we have no icons, create defaults
+                    if not existing_icons:
+                        print("No existing icons found, creating default icons...")
+                        return self.create_default_icons()
+                    
+                    # Create missing PNG for Linux from ICO or ICNS
+                    linux_png = self.icon_dir / "AutoBrightspace.png"
+                    if not linux_png.exists() and ("windows" in existing_icons or "darwin" in existing_icons):
+                        source_icon = existing_icons.get("windows") or existing_icons.get("darwin")
+                        try:
+                            img = Image.open(source_icon)
+                            if img.mode != 'RGBA':
+                                img = img.convert('RGBA')
+                            img.save(linux_png, "PNG")
+                            print(f"✓ Created PNG icon from {source_icon.name}")
+                        except Exception as e:
+                            print(f"⚠ Could not convert to PNG: {e}")
+                    
+                    return True
+                except Exception as e:
+                    print(f"⚠ Icon processing failed: {e}")
+                    return False
+            
+            def create_default_icons(self):
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    
+                    self.icon_dir.mkdir(exist_ok=True)
+                    img = Image.new('RGBA', (256, 256), (31, 83, 141, 255))
+                    draw = ImageDraw.Draw(img)
+                    
+                    try:
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
+                    except:
+                        font = ImageFont.load_default()
+                    
+                    text = "AB"
+                    bbox = draw.textbbox((0, 0), text, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                    
+                    x = (256 - text_width) // 2
+                    y = (256 - text_height) // 2
+                    draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
+                    
+                    # Create icons for all platforms
+                    png_path = self.icon_dir / "AutoBrightspace.png"
+                    ico_path = self.icon_dir / "AutoBrightspace.ico"
+                    icns_path = self.icon_dir / "AutoBrightspace.icns"
+                    
+                    img.save(png_path, "PNG")
+                    img.save(ico_path, "ICO", sizes=[(256, 256), (128, 128), (64, 64), (32, 32), (16, 16)])
+                    print("✓ Created icons")
+                    
+                    try:
+                        img.save(icns_path, "ICNS")
+                    except:
+                        shutil.copy2(png_path, icns_path.with_suffix(".png"))
+                    
+                    return True
+                except Exception as e:
+                    print(f"⚠ Icon creation failed: {e}")
+                    return False
+        
+        build_tool = CLIBuildTool(source_file)
+        
+        # Check PyInstaller
+        try:
+            import PyInstaller
+            print(f"✓ PyInstaller {PyInstaller.__version__} available")
+        except ImportError:
+            print("✗ PyInstaller not found. Installing...")
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
+                print("✓ PyInstaller installed")
+            except subprocess.CalledProcessError:
+                print("✗ Failed to install PyInstaller")
+                return False
+        
+        # Clean and prepare
+        print("Cleaning previous builds...")
+        build_tool.clean_dirs()
+        
+        # Create icons
+        print("Creating application icons...")
+        build_tool.create_icons()
+        
+        # Determine icon path
+        icon_extensions = {"windows": ".ico", "darwin": ".icns", "linux": ".png"}
+        icon_ext = icon_extensions.get(build_tool.current_os, ".png")
+        icon_path = build_tool.icon_dir / f"AutoBrightspace{icon_ext}"
+        
+        if not icon_path.exists() and icon_ext == ".icns":
+            # Fallback to PNG for macOS if ICNS creation failed
+            icon_path = build_tool.icon_dir / "AutoBrightspace.png"
+        
+        # Build command
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--onefile",
+            "--windowed",
+            "--clean",
+            "--noconfirm",
+            "--name", build_tool.app_name,
+            "--distpath", str(build_tool.dist_dir),
+            "--workpath", str(build_tool.build_dir)
+        ]
+        
+        # Add icon if available
+        if icon_path.exists():
+            cmd.extend(["--icon", str(icon_path)])
+            print(f"✓ Using icon: {icon_path.name}")
+        
+        # Add hidden imports for better compatibility
+        hidden_imports = [
+            "PyQt5.QtCore", "PyQt5.QtGui", "PyQt5.QtWidgets",
+            "selenium", "selenium.webdriver", "selenium.webdriver.chrome",
+            "webdriver_manager", "webdriver_manager.chrome", 
+            "pyotp", "cryptography", "cryptography.fernet", "appdirs"
+        ]
+        
+        for imp in hidden_imports:
+            cmd.extend(["--hidden-import", imp])
+        
+        # Exclude conflicting Qt packages and unnecessary modules
+        exclude_modules = [
+            "PySide2", "PySide6", "PyQt6", 
+            "tkinter", "matplotlib", "numpy", "pandas", "scipy",
+            "IPython", "jupyter", "notebook", "jupyterlab",
+            "sphinx", "babel", "pytest", "astroid"
+        ]
+        
+        for exc in exclude_modules:
+            cmd.extend(["--exclude-module", exc])
+        
+        cmd.append(str(build_tool.source_file))
+        
+        # Run build
+        print("Building executable with PyInstaller...")
+        print("This may take a few minutes...")
+        
+        result = subprocess.run(cmd, cwd=build_tool.project_dir)
+        
+        if result.returncode == 0:
+            print("✓ Build completed successfully!")
+            
+            # Make executable on Unix systems
+            exe_name = build_tool.executable_names[build_tool.current_os]
+            exe_path = build_tool.dist_dir / exe_name
+            
+            if build_tool.current_os in ["linux", "darwin"] and exe_path.exists():
+                exe_path.chmod(0o755)
+                print("✓ Made executable file executable")
+            
+            # Create launcher script
+            if build_tool.current_os == "windows":
+                launcher_content = f'''@echo off
+cd /d "%~dp0"
+"{exe_name}" run
+if errorlevel 1 pause
+'''
+                launcher_path = build_tool.dist_dir / "AutoBrightspace_QuickLogin.bat"
+            else:
+                launcher_content = f'''#!/bin/bash
+DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+cd "$DIR"
+./{exe_name} run
+'''
+                launcher_path = build_tool.dist_dir / "AutoBrightspace_QuickLogin.sh"
+            
+            try:
+                launcher_path.write_text(launcher_content)
+                if build_tool.current_os != "windows":
+                    launcher_path.chmod(0o755)
+                print(f"✓ Created launcher: {launcher_path.name}")
+            except Exception as e:
+                print(f"⚠ Could not create launcher: {e}")
+            
+            # Show results
+            if exe_path.exists():
+                size_mb = exe_path.stat().st_size / (1024 * 1024)
+                print(f"\n🎉 Build completed successfully!")
+                print(f"📁 Location: {exe_path}")
+                print(f"📊 Size: {size_mb:.1f} MB")
+                
+                print(f"\n📋 Usage:")
+                if build_tool.current_os == "windows":
+                    print(f"• Double-click: {exe_name}")
+                    print(f"• Command: {exe_name}")
+                    print(f"• CLI login: {exe_name} run")
+                    print(f"• Configure: {exe_name} config")
+                    print(f"• Quick login: AutoBrightspace_QuickLogin.bat")
+                else:
+                    print(f"• Double-click: {exe_name} (if supported)")
+                    print(f"• Terminal: ./{exe_name}")
+                    print(f"• CLI login: ./{exe_name} run")
+                    print(f"• Configure: ./{exe_name} config")
+                    print(f"• Quick login: ./AutoBrightspace_QuickLogin.sh")
+                
+                print(f"\n💡 The launcher script provides instant login")
+                print(f"   (same as 'python AutoBrightSpace.py run')")
+            
+            return True
+        else:
+            print("✗ Build failed!")
+            return False
+            
+    except Exception as e:
+        print(f"✗ Build error: {e}")
+        return False
 
 def cli_config():
     """CLI configuration mode"""
@@ -1269,6 +2010,117 @@ def cli_config():
         print("5. Click on the 👁️ (eye icon) to reveal your secret key")
     else:
         print("✗ Configuration incomplete. Please provide all credentials.")
+    """CLI configuration mode"""
+    print("=== AutoBrightSpace Configuration ===")
+    print()
+    
+    # Load existing credentials
+    username, password, secret_key = load_credentials_cli()
+    
+    print("Current credentials:")
+    print(f"Username: {username if username else '(not set)'}")
+    print(f"Password: {'*' * len(password) if password else '(not set)'}")
+    print(f"2FA Secret: {'*' * len(secret_key) if secret_key else '(not set)'}")
+    print()
+    
+    # Get new credentials
+    new_username = input(f"Enter username [{username}]: ").strip()
+    if not new_username:
+        new_username = username
+    
+    import getpass
+    new_password = getpass.getpass(f"Enter password [{'current' if password else 'not set'}]: ").strip()
+    if not new_password:
+        new_password = password
+    
+    new_secret_key = getpass.getpass(f"Enter 2FA secret key [{'current' if secret_key else 'not set'}]: ").strip()
+    if not new_secret_key:
+        new_secret_key = secret_key
+    
+    if new_username and new_password and new_secret_key:
+        save_credentials_cli(new_username, new_password, new_secret_key)
+        print()
+        print("How to get your 2FA Secret Key:")
+        print("1. Visit the Leiden University Account Service")
+        print("2. Log in with your Leiden University credentials")
+        print("3. Navigate to Multi-Factor Authentication")
+        print("4. Select Enroll/Modify under TOTP Non-NetIQ Authenticator")
+        print("5. Click on the 👁️ (eye icon) to reveal your secret key")
+    else:
+        print("✗ Configuration incomplete. Please provide all credentials.")
+
+def create_robust_chrome_driver():
+    """Standalone function to create Chrome driver with robust error handling"""
+    import glob
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
+    
+    # Method 1: Try webdriver-manager
+    try:
+        print("Attempting to download ChromeDriver...")
+        service = Service(ChromeDriverManager().install())
+        
+        # Verify the downloaded driver is actually executable
+        driver_path = service.path
+        if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+            print(f"Using ChromeDriver: {driver_path}")
+            return webdriver.Chrome(service=service)
+        else:
+            print("Downloaded ChromeDriver is not executable, trying alternatives...")
+    except Exception as e:
+        print(f"webdriver-manager failed: {str(e)}")
+    
+    # Method 2: Try to find and fix ChromeDriver in .wdm cache
+    try:
+        wdm_path = os.path.expanduser("~/.wdm/drivers/chromedriver/linux64/*/")
+        chrome_dirs = glob.glob(wdm_path)
+        
+        for chrome_dir in chrome_dirs:
+            # Look for the actual chromedriver executable (not the THIRD_PARTY_NOTICES file)
+            potential_drivers = [
+                os.path.join(chrome_dir, "chromedriver-linux64", "chromedriver"),
+                os.path.join(chrome_dir, "chromedriver"),
+                os.path.join(chrome_dir, "chromedriver-linux64", "chromedriver-linux64")
+            ]
+            
+            for driver_path in potential_drivers:
+                if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                    print(f"Found working ChromeDriver: {driver_path}")
+                    service = Service(driver_path)
+                    return webdriver.Chrome(service=service)
+                elif os.path.exists(driver_path):
+                    # Make it executable if it exists but isn't executable
+                    try:
+                        os.chmod(driver_path, 0o755)
+                        if os.access(driver_path, os.X_OK):
+                            print(f"Fixed and using ChromeDriver: {driver_path}")
+                            service = Service(driver_path)
+                            return webdriver.Chrome(service=service)
+                    except Exception as e:
+                        print(f"Could not fix permissions: {e}")
+    except Exception as e:
+        print(f"Cache search failed: {str(e)}")
+    
+    # Method 3: Try system chromedriver
+    try:
+        result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
+        if result.returncode == 0:
+            system_driver = result.stdout.strip()
+            print(f"Using system ChromeDriver: {system_driver}")
+            service = Service(system_driver)
+            return webdriver.Chrome(service=service)
+    except Exception as e:
+        print(f"System chromedriver check failed: {str(e)}")
+    
+    # Method 4: Try without service (let Chrome find its own driver)
+    try:
+        print("Trying to use Chrome's built-in driver...")
+        return webdriver.Chrome()
+    except Exception as e:
+        print(f"Built-in driver failed: {str(e)}")
+    
+    return None
 
 def cli_run():
     """CLI run mode - automated login without GUI"""
@@ -1285,7 +2137,7 @@ def cli_run():
     print(f"Starting automated login for user: {username}")
     
     try:
-        # Initialize Chrome driver
+        # Initialize Chrome driver with robust error handling
         print("Initializing browser...")
         from selenium import webdriver
         from selenium.webdriver.chrome.service import Service
@@ -1294,8 +2146,10 @@ def cli_run():
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
         
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service)
+        driver = create_robust_chrome_driver()
+        if not driver:
+            print("✗ Failed to initialize Chrome browser")
+            return False
         
         print("Navigating to Brightspace...")
         driver.get("https://brightspace.universiteitleiden.nl")
@@ -1402,8 +2256,8 @@ def cli_run():
 
 def main():
     parser = argparse.ArgumentParser(description='AutoBrightSpace - University Login Automation')
-    parser.add_argument('mode', nargs='?', choices=['run', 'config'], 
-                       help='CLI mode: "run" for automated login, "config" to set credentials')
+    parser.add_argument('mode', nargs='?', choices=['run', 'config', 'build'], 
+                       help='CLI mode: "run" for automated login, "config" to set credentials, "build" to create executable')
     
     args = parser.parse_args()
     
@@ -1415,6 +2269,10 @@ def main():
         # CLI config mode
         cli_config()
         sys.exit(0)
+    elif args.mode == 'build':
+        # CLI build mode
+        success = cli_build()
+        sys.exit(0 if success else 1)
     else:
         # GUI mode (default)
         app = QApplication(sys.argv)

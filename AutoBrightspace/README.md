@@ -29,6 +29,29 @@ python AutoBrightSpace.py config
 python AutoBrightSpace.py run
 ```
 
+**Build standalone executable:**
+```bash
+python AutoBrightSpace.py build
+```
+
+## Building Standalone Executables
+
+AutoBrightspace can create single-file executables for Windows (.exe), macOS (.app), and Linux that work without requiring Python installation.
+
+- **What Gets Created?** After building, you'll find in the `dist/` folder:
+
+**Windows:**
+- `AutoBrightspace.exe` - Main executable
+- `AutoBrightspace_QuickLogin.bat` - Quick login launcher
+
+**macOS:**
+- `AutoBrightspace.app` - App bundle (double-clickable)
+- `AutoBrightspace_QuickLogin.sh` - Quick login launcher  
+
+**Linux:**
+- `AutoBrightspace` - Executable file
+- `AutoBrightspace_QuickLogin.sh` - Quick login launcher
+
 ## Getting Your 2FA Secret Key
 
 1. Visit the [Leiden University Account Service](https://account.services.universiteitleiden.nl/).
@@ -44,9 +67,29 @@ python AutoBrightSpace.py run
 - **2FA failing**: Verify your secret key is correct and try regenerating TOTP codes
 - **Building executable fails**: Ensure you have `pyinstaller` installed and configured correctly
 - **Shortcut not working**: Highly recommended to set a keyboard shortcut from system settings
+- **Qt conflicts during build**: The build process automatically excludes conflicting Qt packages (PySide2, PyQt6)
+- **Large executable size**: The ~80MB size is normal and includes all dependencies for standalone operation
+
+## Advanced Usage
+
+### Using the Enhanced Build Tool
+For advanced building options:
+```bash
+# Use the standalone build tool
+python build_tool.py
+
+# Clean previous builds
+python build_tool.py --clean
+```
+
+### Troubleshooting
+- **ChromeDriver issues**: The issue is that `webdriver-manager` is trying to execute `THIRD_PARTY_NOTICES.chromedriver` instead of the actual chromedriver executable. This is a known bug with webdriver-manager. You can remove the `THIRD_PARTY_NOTICES.chromedriver` file from the `webdriver_manager\drivers` directory to resolve this issue. For MacOS/Linux run `rm -rf ~/.wdm` and for Windows run `rmdir /S /Q %USERPROFILE%\.wdm`.
 
 ## Security Notes
 
-- Credentials are stored locally in your user data directory
-- 2FA secret keys are stored securely on your device
-- No data is transmitted to external servers 
+- **Encrypted Storage**: Credentials are encrypted using machine-specific keys before being stored locally
+- **Local Storage Only**: All data remains on your device in your user data directory:
+  - Linux: `~/.local/share/AutoBrightspace/`
+  - macOS: `~/Library/Application Support/AutoBrightspace/`
+  - Windows: `%LOCALAPPDATA%\AutoBrightspace\`
+- **No External Transmission**: No data is transmitted to external servers
