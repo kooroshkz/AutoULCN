@@ -234,12 +234,14 @@
             <button class="icon-btn" id="settingsButton">⚙</button>
           </div>
         </div>
+        <button class="btn" id="fillNowButton" style="margin-bottom:8px;">⚡ Fill code on this page</button>
       </div>
       
       <div class="input-group">
         <input type="text" id="secretKeyInput" placeholder="Enter your TOTP secret key">
       </div>
       <button class="btn" id="saveButton">Save Secret Key</button>
+      <button class="btn btn-secondary" id="settingsLink" style="margin-top:8px;">⚙ Settings</button>
     </div>
 
     <div id="settingsPage" class="hidden">
@@ -254,6 +256,11 @@
             View Secret Key
           </button>
           
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;padding:4px 2px;">
+            <input type="checkbox" id="autoSubmitToggle" checked style="width:16px;height:16px;cursor:pointer;">
+            Auto-submit after filling the code
+          </label>
+
           <div class="settings-row">
             <button class="btn btn-danger" id="resetButton">
               Reset Key
@@ -269,7 +276,6 @@
     </div>
   </div>
 
-  <script src="dist/jsOTP.min.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

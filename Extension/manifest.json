@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AutoULCN",
-  "version": "3.0",
-  "description": "Automatically fill TOTP code for ULCN login forms.",
+  "version": "4.0",
+  "description": "Automatically fills your Leiden University TOTP code on the ULCN/MFA login pages.",
   "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html",
@@ -20,11 +20,13 @@
   "content_scripts": [
     {
       "matches": [
-        "*://login.uaccess.leidenuniv.nl/*", 
-        "*://mfa.services.universiteitleiden.nl/*", 
+        "*://login.uaccess.leidenuniv.nl/*",
+        "*://mfa.services.universiteitleiden.nl/*",
         "*://account.services.universiteitleiden.nl/portaal/*"
       ],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ]
 }
+
