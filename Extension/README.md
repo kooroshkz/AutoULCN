@@ -13,11 +13,11 @@ The project is easily accessible through Chrome Web Store from [this link](https
 
 ## <img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Firefox_logo%2C_2019.svg" alt="Firefox Logo" width="40" style="vertical-align:middle; margin-right:8px;"/> Firefox:
 
-Open Firefox and download the extension from [here](https://github.com/kooroshkz/AutoULCN/raw/main/Extension/AutoULCN.xpi). Enjoy!
-- Firefox will automatically install the extension when you click on the link. If it doesn't, follow these steps:
-  - 1. Open Firefox `Extensions and themes`. From the top right corner, click the setting button.
-  - 2. Click **Install Add-on From File...**.
-  - 3. Select the downloaded `AutoULCN.xpi` file to install the extension.
+Grab the signed `.xpi` from [here](https://github.com/kooroshkz/AutoULCN/raw/main/Extension/AutoULCN.xpi).
+- Firefox will install it when you open the link. If it doesn't, follow these steps:
+  - 1. Open Firefox `Add-ons and themes` (`about:addons`). From the top-right gear button, choose **Install Add-on From File...**.
+  - 2. Select the downloaded `AutoULCN.xpi` file to install the extension.
+- Note: installing the `.xpi` directly does **not** auto-update — use the Add-ons link above if you want automatic updates.
 
 ---
 
