@@ -171,10 +171,17 @@ function showSecretKeyNotification(secretKey) {
     icon.style.cssText = 'display:inline-block;margin-right:8px;font-size:16px;';
     icon.textContent = '🔐';
 
+    // Built with DOM nodes (no innerHTML) so nothing from the page is ever
+    // interpreted as markup.
     const message = document.createElement('span');
-    message.innerHTML =
-      `<strong>Secret Key Detected!</strong><br>` +
-      `<small style="opacity:0.9;">${secretKey.substring(0, 8)}…</small>`;
+    const title = document.createElement('strong');
+    title.textContent = 'Secret Key Detected!';
+    const sub = document.createElement('small');
+    sub.style.opacity = '0.9';
+    sub.textContent = secretKey.substring(0, 8) + '…';
+    message.appendChild(title);
+    message.appendChild(document.createElement('br'));
+    message.appendChild(sub);
 
     notificationDiv.appendChild(icon);
     notificationDiv.appendChild(message);
