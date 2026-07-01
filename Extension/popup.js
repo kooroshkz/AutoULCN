@@ -91,8 +91,9 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
                  currentUrl.startsWith("https://mfa.services.universiteitleiden.nl") ||
                  currentUrl.startsWith("https://account.services.universiteitleiden.nl/portaal");
 
-  browserAPI.storage.local.get(['Secret_Key', 'Auto_Submit'], function (result) {
+  browserAPI.storage.local.get(['Secret_Key', 'Auto_Fill', 'Auto_Submit', 'Otpauth_Uri'], function (result) {
     const storedSecretKey = result.Secret_Key;
+    const storedOtpauthUri = result.Otpauth_Uri;
 
     const statusElement = document.getElementById("status");
     const secretKeyInputElement = document.getElementById("secretKeyInput");
@@ -109,12 +110,42 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const resetButton = document.getElementById("resetButton");
     const backButton = document.getElementById("backButton");
     const secretKeyDisplay = document.getElementById("secretKeyDisplay");
+    const qrCodeContainer = document.getElementById("qrCodeContainer");
+    const qrCodeImg = document.getElementById("qrCodeImg");
     const fillNowButton = document.getElementById("fillNowButton");
+    const autoFillToggle = document.getElementById("autoFillToggle");
     const autoSubmitToggle = document.getElementById("autoSubmitToggle");
 
-    // --- Auto-submit preference (default: on) ---
+    function buildOtpauthUri() {
+      if (storedOtpauthUri && /^otpauth:\/\/totp\//i.test(storedOtpauthUri)) return storedOtpauthUri;
+      const issuer = "Leiden University";
+      return "otpauth://totp/" + encodeURIComponent(issuer) +
+             "?secret=" + encodeURIComponent(storedSecretKey) +
+             "&issuer=" + encodeURIComponent(issuer);
+    }
+
+    function renderQrCode() {
+      if (!qrCodeImg || typeof qrcode === "undefined" || !storedSecretKey) return;
+      try {
+        const qr = qrcode(0, "M"); // type 0 = auto-size, medium error correction
+        qr.addData(buildOtpauthUri());
+        qr.make();
+        qrCodeImg.src = qr.createDataURL(4, 4);
+      } catch (e) {
+        console.error("AutoULCN: QR render error", e);
+      }
+    }
+
+    if (autoFillToggle) {
+      autoFillToggle.checked = result.Auto_Fill === true;
+      autoFillToggle.addEventListener("change", function () {
+        browserAPI.storage.local.set({ Auto_Fill: autoFillToggle.checked });
+      });
+    }
+
+    // --- Auto-submit preference (default: off) ---
     if (autoSubmitToggle) {
-      autoSubmitToggle.checked = result.Auto_Submit !== false;
+      autoSubmitToggle.checked = result.Auto_Submit === true;
       autoSubmitToggle.addEventListener("change", function () {
         browserAPI.storage.local.set({ Auto_Submit: autoSubmitToggle.checked });
       });
@@ -191,6 +222,7 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       showElement(settingsPage);
       hideElement(settingsButton);
       hideElement(secretKeyDisplay);
+      hideElement(qrCodeContainer);
       if (viewSecretButton) viewSecretButton.textContent = "View Secret Key";
     }
     if (settingsButton) settingsButton.addEventListener("click", openSettings);
@@ -201,6 +233,7 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       showElement(mainPage);
       showElement(settingsButton);
       hideElement(secretKeyDisplay);
+      hideElement(qrCodeContainer);
       if (viewSecretButton) viewSecretButton.textContent = "View Secret Key";
     });
 
@@ -208,10 +241,13 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (!storedSecretKey || !secretKeyDisplay) return;
       if (secretKeyDisplay.classList.contains('hidden')) {
         secretKeyDisplay.textContent = storedSecretKey;
+        renderQrCode();
+        showElement(qrCodeContainer);
         showElement(secretKeyDisplay);
         viewSecretButton.textContent = "Hide Secret Key";
       } else {
         hideElement(secretKeyDisplay);
+        hideElement(qrCodeContainer);
         viewSecretButton.textContent = "View Secret Key";
       }
     });
@@ -230,10 +266,10 @@ browserAPI.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     // --- Manual "fill now" (fallback if auto-fill missed the field) ---
     if (fillNowButton) fillNowButton.addEventListener("click", function () {
       if (!currentTab) return;
-      fillNowButton.textContent = "⚡ Sending…";
+      fillNowButton.textContent = "Sending…";
       sendMessageSafely(currentTab.id, { type: "AUTOULCN_FILL" }).then((delivered) => {
-        fillNowButton.textContent = delivered ? "⚡ Sent!" : "⚠ Open the login page first";
-        setTimeout(() => { fillNowButton.textContent = "⚡ Fill code on this page"; }, 1500);
+        fillNowButton.textContent = delivered ? "Sent!" : "Open login page first";
+        setTimeout(() => { fillNowButton.textContent = "Fill Now"; }, 1500);
       });
     });
   });

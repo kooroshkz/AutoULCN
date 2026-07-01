@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AutoULCN",
   "version": "4.0",
-  "description": "Automatically fills your Leiden University TOTP code on the ULCN/MFA login pages.",
+  "description": "Generates your Leiden University TOTP code and fills it on the ULCN/MFA login pages.",
   "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html",

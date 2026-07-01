@@ -230,17 +230,20 @@
           <div class="totp-label">Current TOTP Code</div>
           <div class="totp-code-value" id="totpCodeValue"></div>
           <div class="totp-actions">
-            <button class="btn" id="copyButton">Copy Code</button>
-            <button class="icon-btn" id="settingsButton">⚙</button>
+            <button class="btn" id="copyButton" style="flex:1;">Copy Code</button>
+            <button class="btn" id="fillNowButton" style="flex:1;">Fill Now</button>
           </div>
         </div>
-        <button class="btn" id="fillNowButton" style="margin-bottom:8px;">⚡ Fill code on this page</button>
       </div>
       
       <div class="input-group">
         <input type="text" id="secretKeyInput" placeholder="Enter your TOTP secret key">
       </div>
       <button class="btn" id="saveButton">Save Secret Key</button>
+      <div class="settings-row" style="margin-top:8px;">
+        <a class="btn" href="https://brightspace.universiteitleiden.nl/" target="_blank" rel="noopener" style="text-decoration:none;">Brightspace</a>
+        <a class="btn" href="https://account.services.universiteitleiden.nl/" target="_blank" rel="noopener" style="text-decoration:none;">Account Service</a>
+      </div>
       <button class="btn btn-secondary" id="settingsLink" style="margin-top:8px;">⚙ Settings</button>
     </div>
 
@@ -257,9 +260,16 @@
           </button>
           
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;padding:4px 2px;">
-            <input type="checkbox" id="autoSubmitToggle" checked style="width:16px;height:16px;cursor:pointer;">
+            <input type="checkbox" id="autoFillToggle" style="width:16px;height:16px;cursor:pointer;">
+            Auto-fill code on login pages
+          </label>
+
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;padding:4px 2px;">
+            <input type="checkbox" id="autoSubmitToggle" style="width:16px;height:16px;cursor:pointer;">
             Auto-submit after filling the code
           </label>
+
+          <a class="btn btn-secondary" href="https://github.com/kooroshkz/AutoULCN/tree/main/Extension" target="_blank" rel="noopener" style="text-decoration:none;">Instruction Guide</a>
 
           <div class="settings-row">
             <button class="btn btn-danger" id="resetButton">
@@ -271,11 +281,17 @@
           </div>
         </div>
         
+        <div id="qrCodeContainer" class="hidden" style="text-align:center;margin-top:8px;">
+          <img id="qrCodeImg" alt="TOTP setup QR code" style="width:160px;height:160px;image-rendering:pixelated;background:#fff;padding:6px;border:1px solid #e2e8f0;border-radius:6px;">
+          <div style="font-size:10px;color:#64748b;margin-top:4px;">Scan in an authenticator app as a backup</div>
+        </div>
+
         <div id="secretKeyDisplay" class="secret-display hidden"></div>
       </div>
     </div>
   </div>
 
+  <script src="dist/qrcode.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

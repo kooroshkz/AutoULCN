@@ -91,10 +91,22 @@ function isLikelyBase32Key(s) {
   return /^[A-Z2-7]{12,64}$/.test(cleaned);
 }
 
+function findOtpauthUri() {
+  try {
+    const html = (document.documentElement && document.documentElement.innerHTML) || '';
+    const m = html.match(/otpauth:\/\/totp\/[^\s"'<>\\)]+/i);
+    if (m && m[0]) return m[0].replace(/&amp;/g, '&');
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
 function saveSecretKey(secretKey) {
   const cleaned = String(secretKey).replace(/\s+/g, '').trim();
   if (!isLikelyBase32Key(cleaned)) return false;
-  browserAPI.storage.local.set({ Secret_Key: cleaned }, () => {
+  const data = { Secret_Key: cleaned };
+  const uri = findOtpauthUri();
+  if (uri) data.Otpauth_Uri = uri;
+  browserAPI.storage.local.set(data, () => {
     showSecretKeyNotification(cleaned);
   });
   return true;
@@ -195,12 +207,15 @@ function setNativeValue(el, value) {
 }
 
 function findCodeInput() {
-  // Authoritative id, confirmed from the project's own Selenium tool (#nffc).
-  const direct = document.querySelector('#nffc') || document.querySelector('input[name="nffc"]');
+  const direct =
+    document.querySelector('#nffc') ||
+    document.querySelector('input[name="nffc"]') ||
+    (isEnrollPage()
+      ? (document.querySelector('form[name="Enroll"] input[name="answer"]') ||
+         document.querySelector('input[name="answer"]'))
+      : null);
   if (direct) return direct;
 
-  // Heuristic fallback ONLY on the MFA page. The username/password page lives on
-  // login.uaccess and has its own text inputs — we must never type a code there.
   if (!location.hostname.includes('mfa.services.universiteitleiden.nl')) return null;
 
   const candidates = Array.from(document.querySelectorAll(
@@ -233,11 +248,21 @@ function findSubmitButton() {
 let filling = false;   // re-entrancy guard for the async fill
 let submitted = false; // ensure we only auto-click submit once per page load
 
-async function fillCode() {
+const AUTO_ATTEMPT_KEY = 'autoulcn_auto_attempted';
+function hasAutoAttempted() {
+  try { return sessionStorage.getItem(AUTO_ATTEMPT_KEY) === '1'; } catch (e) { return false; }
+}
+function markAutoAttempted() {
+  try { sessionStorage.setItem(AUTO_ATTEMPT_KEY, '1'); } catch (e) { /* ignore */ }
+}
+
+async function fillCode(isAuto = false) {
   const input = findCodeInput();
   if (!input) return false;
   if (input.dataset.autoulcnFilled) return true; // already handled this element
   if (filling) return false;
+  // Auto path only fires once per tab session; manual fills always proceed.
+  if (isAuto && hasAutoAttempted()) return false;
 
   filling = true;
   try {
@@ -257,9 +282,10 @@ async function fillCode() {
     const code = await generateTOTP(Secret_Key, { period });
     setNativeValue(input, code);
     input.dataset.autoulcnFilled = code;
+    if (isAuto) markAutoAttempted();
     console.log('AutoULCN: filled the code field');
 
-    if (Auto_Submit !== false && !submitted) {
+    if (Auto_Submit === true && !submitted) {
       const btn = findSubmitButton();
       if (btn) {
         submitted = true;
@@ -282,18 +308,27 @@ async function fillCode() {
 
 async function watchForCodeField() {
   // No point watching the page if the user hasn't saved a secret yet.
-  const { Secret_Key } = await storageGet(['Secret_Key']);
+  const { Secret_Key, Auto_Fill } = await storageGet(['Secret_Key', 'Auto_Fill']);
   if (!Secret_Key) {
     console.log('AutoULCN: no secret saved yet — open the extension to add it. Auto-fill is idle.');
     return;
   }
+  if (Auto_Fill !== true) {
+    console.log('AutoULCN: auto-fill is off (enable it in the extension settings). Use "Fill Now" to fill manually.');
+    return;
+  }
+  if (hasAutoAttempted()) {
+    console.log('AutoULCN: already auto-filled once this session — not retrying automatically. Use "Fill Now" in the popup to retry.');
+    return;
+  }
 
-  if (await fillCode()) return;
+  if (await fillCode(true)) return;
 
   // The MFA page reveals the code field only after a method-selection step,
   // so keep watching the DOM until it appears.
   const observer = new MutationObserver(() => {
-    fillCode().then((ok) => { if (ok) observer.disconnect(); });
+    if (hasAutoAttempted()) { observer.disconnect(); return; }
+    fillCode(true).then((ok) => { if (ok) observer.disconnect(); });
   });
   const target = document.body || document.documentElement;
   if (target) observer.observe(target, { childList: true, subtree: true });
@@ -305,11 +340,10 @@ async function watchForCodeField() {
 // Optional manual trigger from the popup ("Fill code now").
 browserAPI.runtime.onMessage.addListener((message) => {
   if (message && message.type === 'AUTOULCN_FILL') {
-    // Allow a re-fill even if we filled before (e.g. previous code expired).
     const input = findCodeInput();
     if (input) delete input.dataset.autoulcnFilled;
     submitted = false;
-    fillCode();
+    fillCode(false);
   }
 });
 
@@ -319,6 +353,9 @@ browserAPI.runtime.onMessage.addListener((message) => {
 function isSetupPage() {
   return location.hostname.includes('account.services.universiteitleiden.nl');
 }
+function isEnrollPage() {
+  return isSetupPage() && location.pathname.includes('/portaal/enroll');
+}
 function isLoginPage() {
   return location.hostname.includes('login.uaccess.leidenuniv.nl') ||
          location.hostname.includes('mfa.services.universiteitleiden.nl');
@@ -327,7 +364,7 @@ function isLoginPage() {
 function init() {
   console.log('AutoULCN: content script loaded on', location.hostname);
   if (isSetupPage()) detectAndSaveSecretKey();
-  if (isLoginPage()) watchForCodeField();
+  if (isLoginPage() || isEnrollPage()) watchForCodeField();
 }
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
